@@ -1,122 +1,102 @@
 const mongoose = require('mongoose');
 
 const vehicleSchema = new mongoose.Schema({
-  stock_id: {
-    type: String,
-    required: true,
-    unique: true,
-    uppercase: true,
+  stock_id: { 
+    type: String, 
+    required: true, 
+    unique: true, 
+    uppercase: true, 
     trim: true,
-    index: true
+    index: true 
   },
-  registration_number: {
-    type: String,
+  registration_number: { 
+    type: String, 
+    trim: true, 
+    uppercase: true 
+  },
+  brand: { 
+    type: String, 
+    required: true, 
+    trim: true 
+  },
+  model: { 
+    type: String, 
+    required: true, 
+    trim: true 
+  },
+  variant: { 
+    type: String, 
     trim: true,
-    uppercase: true,
-    index: true
+    default: '' 
   },
-  brand: {
-    type: String,
-    required: true,
+  year: { 
+    type: Number, 
+    required: true 
+  },
+  fuel: { 
+    type: String, 
+    enum: ['petrol', 'diesel', 'cng', 'electric', 'hybrid', 'other'], 
+    default: 'petrol' 
+  },
+  transmission: { 
+    type: String, 
+    enum: ['manual', 'automatic'], 
+    default: 'manual' 
+  },
+  body_type: { 
+    type: String, 
+    enum: ['suv', 'sedan', 'hatchback', 'muv', 'coupe', 'other'], 
+    default: 'suv' 
+  },
+  km_driven: { 
+    type: Number, 
+    required: true, 
+    min: 0 
+  },
+  colour: { 
+    type: String, 
     trim: true,
-    index: true
+    default: '' 
   },
-  model: {
-    type: String,
-    required: true,
-    trim: true,
-    index: true
+  purchase_price: { 
+    type: Number, 
+    default: 0 
   },
-  variant: {
-    type: String,
-    trim: true
+  asking_price: { 
+    type: Number, 
+    required: true, 
+    min: 0 
   },
-  year: {
-    type: Number,
-    required: true,
-    min: 2000,
-    max: 2030,
-    index: true
+  minimum_selling_price: { 
+    type: Number, 
+    default: 0 
   },
-  registration_year: {
-    type: Number
-  },
-  fuel: {
-    type: String,
-    enum: ['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid', 'Other'],
-    required: true,
-    default: 'Petrol'
-  },
-  transmission: {
-    type: String,
-    enum: ['Manual', 'Automatic'],
-    default: 'Manual'
-  },
-  body_type: {
-    type: String,
-    enum: ['SUV', 'Sedan', 'Hatchback', 'MUV', 'Coupe', 'Other'],
-    default: 'SUV'
-  },
-  km_driven: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  owners: {
-    type: Number,
-    default: 1,
-    min: 1
-  },
-  colour: {
-    type: String,
-    trim: true
-  },
-  registration_city: {
-    type: String,
-    trim: true
-  },
-  insurance_validity: {
-    type: Date
-  },
-  purchase_price: {
-    type: Number,
-    min: 0
-  },
-  asking_price: {
-    type: Number,
-    min: 0
-  },
-  selling_price: {
-    type: Number,
-    required: true,
-    min: 0,
-    index: true
-  },
-  minimum_selling_price: {
-    type: Number,
-    min: 0
-  },
-  status: {
-    type: String,
-    enum: ['Available', 'Reserved', 'Test Drive', 'Booked', 'Sold', 'Under Inspection', 'Under Repair'],
-    default: 'Available',
-    index: true
+  status: { 
+    type: String, 
+    enum: ['available', 'reserved', 'booked', 'sold', 'under_repair'], 
+    default: 'available',
+    index: true 
   },
   images: [{
-    url: { type: String, required: true },
-    category: { type: String, default: 'General' },
+    url: String,
     is_primary: { type: Boolean, default: false }
   }],
-  notes: {
-    type: String
+  notes: { 
+    type: String,
+    default: '' 
+  },
+  sold_at: { 
+    type: Date 
   }
-}, {
-  timestamps: true
+}, { 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
-// Compound indexes for inventory filtering & search
-vehicleSchema.index({ brand: 1, model: 1, status: 1 });
-vehicleSchema.index({ selling_price: 1, status: 1 });
-vehicleSchema.index({ brand: 'text', model: 'text', stock_id: 'text', registration_number: 'text' });
+// Virtual compatibility alias
+vehicleSchema.virtual('selling_price')
+  .get(function() { return this.asking_price; })
+  .set(function(v) { this.asking_price = v; });
 
 module.exports = mongoose.model('Vehicle', vehicleSchema);

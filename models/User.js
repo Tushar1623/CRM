@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema({
     required: true, 
     unique: true, 
     lowercase: true, 
-    trim: true, 
+    trim: true,
     index: true 
   },
   phone: { 
@@ -20,37 +20,32 @@ const userSchema = new mongoose.Schema({
     trim: true 
   },
   password_hash: { 
-    type: String,
-    required: true
+    type: String, 
+    required: true 
   },
   role: { 
     type: String, 
     enum: ['admin', 'manager', 'sales_executive'], 
-    default: 'sales_executive', 
-    index: true 
+    default: 'sales_executive' 
   },
   status: { 
     type: String, 
     enum: ['active', 'inactive'], 
-    default: 'active', 
-    index: true 
+    default: 'active' 
   }
 }, { 
   timestamps: true,
   toJSON: {
-    virtuals: true,
     transform: (doc, ret) => {
       delete ret.password_hash;
-      delete ret.password;
+      delete ret.__v;
       return ret;
     }
   }
 });
 
-// Compare password helper
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  if (!this.password_hash) return false;
-  return bcrypt.compare(candidatePassword, this.password_hash);
+userSchema.methods.comparePassword = async function(password) {
+  return bcrypt.compare(password, this.password_hash);
 };
 
 module.exports = mongoose.model('User', userSchema);
