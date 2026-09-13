@@ -42,19 +42,6 @@ if (MONGO_URI) {
   });
 }
 
-// ==========================================
-// 1. DATA WIPER
-// ==========================================
-app.post('/api/clear-data', async (req, res) => {
-  try {
-    await DBManager.clearAll();
-    console.log('🧹 Database wiped clean of all records.');
-    res.json({ message: 'All CRM records successfully cleared!' });
-  } catch (error) {
-    console.error('Error clearing database:', error);
-    res.status(500).json({ error: 'Failed to clear database' });
-  }
-});
 
 // ==========================================
 // 2. AUTHENTICATION & USERS

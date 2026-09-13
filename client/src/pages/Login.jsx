@@ -1,7 +1,8 @@
 import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { CarFront, Lock, Mail } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
+import api from '../api';
 
 function Login() {
   const [email, setEmail] = useState('admin@motorwise.com');
@@ -17,24 +18,12 @@ function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:3000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await res.json();
-      
-      if (!res.ok) {
-        setError(data.error || 'Login failed');
-        setLoading(false);
-        return;
-      }
-
+      const data = await api.post('/api/auth/login', { email, password });
       login(data.user, data.token);
       navigate('/');
     } catch (err) {
-      setError('Could not connect to server.');
+      setError(err.message || 'Login failed. Check credentials.');
+    } finally {
       setLoading(false);
     }
   };

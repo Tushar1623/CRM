@@ -1,7 +1,8 @@
 import { useState, useEffect, useContext } from 'react';
-import { Phone, Calendar, Clock, ChevronRight, MessageCircle, TrendingUp, IndianRupee, Car, CheckCircle } from 'lucide-react';
+import { Phone, Clock, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import api from '../api';
 
 function Dashboard({ onOpenAddLead }) {
   const [stats, setStats] = useState(null);
@@ -11,34 +12,25 @@ function Dashboard({ onOpenAddLead }) {
   const { user } = useContext(AuthContext);
 
   const fetchDashboardData = () => {
-    fetch('http://localhost:3000/api/stats')
-      .then(res => res.json())
+    api('/api/stats')
       .then(data => setStats(data))
-      .catch(err => console.error(err));
+      .catch(console.error);
 
-    fetch('http://localhost:3000/api/activities')
-      .then(res => res.json())
+    api('/api/activities')
       .then(data => setActivities(Array.isArray(data) ? data : []))
-      .catch(err => console.error(err));
+      .catch(console.error);
 
-    fetch('http://localhost:3000/api/actions/today')
-      .then(res => res.json())
+    api('/api/actions/today')
       .then(data => setActions(Array.isArray(data) ? data : []))
-      .catch(err => console.error(err));
+      .catch(console.error);
 
-    fetch('http://localhost:3000/api/test-drives')
-      .then(res => res.json())
+    api('/api/test-drives')
       .then(data => setTestDrives(Array.isArray(data) ? data : []))
-      .catch(err => console.error(err));
+      .catch(console.error);
   };
 
   useEffect(() => {
     fetchDashboardData();
-
-    // Auto-refresh when any lead, car, or deal is created/updated anywhere in the app
-    const handleUpdate = () => fetchDashboardData();
-    window.addEventListener('crm-data-updated', handleUpdate);
-    return () => window.removeEventListener('crm-data-updated', handleUpdate);
   }, []);
 
   const pipeline = stats?.pipelineCounts || {
@@ -60,8 +52,8 @@ function Dashboard({ onOpenAddLead }) {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <Link to="/reports" className="outline-btn">
-            View report <span>→</span>
+          <Link to="/leads" className="outline-btn">
+            View All Leads <span>→</span>
           </Link>
           <button onClick={onOpenAddLead} className="premium-btn">
             + Add Lead
@@ -122,7 +114,7 @@ function Dashboard({ onOpenAddLead }) {
             {actions.length === 0 ? (
               <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <p style={{ margin: '0 0 0.4rem 0', fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.95rem' }}>Nothing due today</p>
-                <p style={{ margin: 0, fontSize: '0.85rem' }}>Your CRM is ready for its first customer enquiry.</p>
+                <p style={{ margin: 0, fontSize: '0.85rem' }}>Your CRM is ready for its next customer enquiry.</p>
                 <button onClick={onOpenAddLead} className="outline-btn" style={{ marginTop: '1rem' }}>
                   + Create First Lead
                 </button>
@@ -140,13 +132,13 @@ function Dashboard({ onOpenAddLead }) {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span className={`priority-pill priority-${act.priority.toLowerCase()}`}>{act.priority}</span>
+                      <span className={`priority-pill priority-${(act.priority || 'warm').toLowerCase()}`}>{act.priority}</span>
                       {act.phone && (
                         <>
                           <a href={`tel:${act.phone}`} className="action-icon-btn" title="Call">
                             <Phone size={13} />
                           </a>
-                          <a href={`https://wa.me/91${act.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="action-icon-btn whatsapp" title="WhatsApp">
+                          <a href={`https://wa.me/91${act.phone.replace(/[^0-9]/g, '').slice(-10)}`} target="_blank" rel="noreferrer" className="action-icon-btn whatsapp" title="WhatsApp">
                             <MessageCircle size={13} />
                           </a>
                         </>
@@ -166,7 +158,7 @@ function Dashboard({ onOpenAddLead }) {
                 <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>Upcoming Test Drives</h3>
               </div>
               <Link to="/test-drives" style={{ color: 'var(--accent-primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '600' }}>
-                Calendar →
+                Schedule →
               </Link>
             </div>
 
@@ -206,8 +198,8 @@ function Dashboard({ onOpenAddLead }) {
                 <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>PIPELINE</p>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>Sales Pipeline</h3>
               </div>
-              <Link to="/pipeline" style={{ color: 'var(--accent-primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '600' }}>
-                View board →
+              <Link to="/leads" style={{ color: 'var(--accent-primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '600' }}>
+                View leads →
               </Link>
             </div>
 

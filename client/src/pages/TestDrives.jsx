@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Plus, CheckCircle, Clock, XCircle, Phone } from 'lucide-react';
+import { Clock, Plus, CheckCircle, XCircle } from 'lucide-react';
+import api from '../api';
 
 function TestDrives() {
   const [testDrives, setTestDrives] = useState([]);
@@ -13,11 +14,13 @@ function TestDrives() {
   const [vehicleId, setVehicleId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState('02:00 PM');
+  const [customCustomerName, setCustomCustomerName] = useState('');
+  const [customCustomerPhone, setCustomCustomerPhone] = useState('');
+  const [customCarName, setCustomCarName] = useState('');
 
   const fetchTestDrives = () => {
     setLoading(true);
-    fetch('http://localhost:3000/api/test-drives')
-      .then(res => res.json())
+    api('/api/test-drives')
       .then(data => { 
         setTestDrives(Array.isArray(data) ? data : []); 
         setLoading(false); 
@@ -28,15 +31,9 @@ function TestDrives() {
       });
   };
 
-  // Fallback direct inputs if customer/vehicle lists are empty or walk-in
-  const [customCustomerName, setCustomCustomerName] = useState('');
-  const [customCustomerPhone, setCustomCustomerPhone] = useState('');
-  const [customCarName, setCustomCarName] = useState('');
-
   useEffect(() => { 
     fetchTestDrives();
-    fetch('http://localhost:3000/api/vehicles')
-      .then(r => r.json())
+    api('/api/vehicles')
       .then(v => {
         if (Array.isArray(v)) {
           setVehicles(v);
@@ -44,8 +41,8 @@ function TestDrives() {
         }
       })
       .catch(console.error);
-    fetch('http://localhost:3000/api/customers')
-      .then(r => r.json())
+
+    api('/api/customers')
       .then(c => {
         if (Array.isArray(c)) {
           setCustomers(c);
@@ -53,13 +50,9 @@ function TestDrives() {
         }
       })
       .catch(console.error);
-
-    const handleUpdate = () => fetchTestDrives();
-    window.addEventListener('crm-data-updated', handleUpdate);
-    return () => window.removeEventListener('crm-data-updated', handleUpdate);
   }, []);
 
-  const handleCreateTestDrive = (e) => {
+  const handleCreateTestDrive = async (e) => {
     e.preventDefault();
     
     const payload = {
@@ -73,33 +66,27 @@ function TestDrives() {
       status: 'Scheduled'
     };
 
-    fetch('http://localhost:3000/api/test-drives', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(r => r.json())
-    .then(() => {
+    try {
+      await api.post('/api/test-drives', payload);
       setShowModal(false);
       setCustomCustomerName('');
       setCustomCustomerPhone('');
       setCustomCarName('');
       fetchTestDrives();
-      window.dispatchEvent(new Event('crm-data-updated'));
       window.dispatchEvent(new CustomEvent('crm-toast', { detail: 'Test drive scheduled successfully!' }));
-    });
+    } catch (err) {
+      alert('Error scheduling test drive: ' + err.message);
+    }
   };
 
-  const handleStatusChange = (id, newStatus) => {
-    fetch(`http://localhost:3000/api/test-drives/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
-    }).then(() => {
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await api.put(`/api/test-drives/${id}`, { status: newStatus });
       fetchTestDrives();
-      window.dispatchEvent(new Event('crm-data-updated'));
       window.dispatchEvent(new CustomEvent('crm-toast', { detail: `Test drive marked as ${newStatus}` }));
-    });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -143,11 +130,11 @@ function TestDrives() {
                       </div>
                     </td>
                     <td>
-                      <strong style={{ fontSize: '0.95rem' }}>{td.customer_id?.name || 'Customer'}</strong>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{td.customer_id?.phone}</div>
+                      <strong style={{ fontSize: '0.95rem' }}>{td.customer_id?.name || td.customer_name || 'Customer'}</strong>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{td.customer_id?.phone || td.customer_phone}</div>
                     </td>
                     <td>
-                      <span style={{ fontWeight: '600' }}>{td.vehicle_id?.brand} {td.vehicle_id?.model}</span>
+                      <span style={{ fontWeight: '600' }}>{td.vehicle_id?.brand} {td.vehicle_id?.model || td.car_name}</span>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{td.vehicle_id?.stock_id || 'STK'}</div>
                     </td>
                     <td>{td.employee_id?.name || td.employee_name || 'Sales Executive'}</td>

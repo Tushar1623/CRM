@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, User, Phone, Mail, CarFront, IndianRupee, Sparkles, Flame, Clock, Check } from 'lucide-react';
+import { X, User, Phone, Mail, CarFront, IndianRupee, Sparkles } from 'lucide-react';
+import api from '../api';
 
 function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
   const [vehicles, setVehicles] = useState([]);
@@ -18,8 +19,7 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
 
   useEffect(() => {
     if (isOpen) {
-      fetch('http://localhost:3000/api/vehicles')
-        .then(r => r.json())
+      api('/api/vehicles')
         .then(data => {
           if (Array.isArray(data) && data.length > 0) {
             setVehicles(data);
@@ -39,24 +39,17 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
     const car = customCarMode && customCar.trim() ? customCar.trim() : interestedCar;
 
     try {
-      const res = await fetch('http://localhost:3000/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          phone,
-          email,
-          interested_car: car,
-          budget_max: budgetMax,
-          source,
-          priority,
-          buying_timeline: timeline,
-          assigned_to: assignedTo
-        })
+      const data = await api.post('/api/leads', {
+        name,
+        phone,
+        email,
+        interested_car: car,
+        budget_max: budgetMax,
+        source,
+        priority,
+        buying_timeline: timeline,
+        assigned_to: assignedTo
       });
-
-      if (!res.ok) throw new Error('Failed to create lead');
-      const data = await res.json();
       
       setName('');
       setPhone('');
@@ -65,7 +58,6 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
       setCustomCarMode(false);
       onClose();
 
-      window.dispatchEvent(new Event('crm-data-updated'));
       window.dispatchEvent(new CustomEvent('crm-toast', { detail: `Lead for ${data.customer_id?.name || 'Customer'} added successfully!` }));
 
       if (onLeadCreated) onLeadCreated(data);
@@ -215,7 +207,7 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
               >
                 {vehicles.map(v => (
                   <option key={v._id} value={`${v.brand} ${v.model}`}>
-                    {v.brand} {v.model} ({v.year}) - ₹{v.selling_price?.toLocaleString()}
+                    {v.brand} {v.model} ({v.year}) - ₹{(v.selling_price || v.asking_price)?.toLocaleString()}
                   </option>
                 ))}
                 <option value="Hyundai Creta">Hyundai Creta</option>

@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
-  LayoutGrid, Users, CarFront, Kanban, Search, Bell, ChevronDown, Plus, LogOut, 
-  Calendar, CheckSquare, Receipt, BarChart3, Sun, Moon, MapPin, Phone, CheckCircle 
+  LayoutGrid, Users, CarFront, Search, ChevronDown, Plus, LogOut, 
+  Calendar, CheckSquare, Receipt, CheckCircle 
 } from 'lucide-react';
 import { useContext, useState, useEffect, useRef } from 'react';
 
@@ -11,23 +11,16 @@ import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
 import Leads from './pages/Leads';
 import LeadDetail from './pages/LeadDetail';
-import Pipeline from './pages/Pipeline';
 import TestDrives from './pages/TestDrives';
-import Customers from './pages/Customers';
 import Followups from './pages/Followups';
 import Deals from './pages/Deals';
-import Reports from './pages/Reports';
 import AddLeadModal from './components/AddLeadModal';
+import api from './api';
 import './index.css';
 
 // Toast Notification Helper
 export const showToast = (message) => {
   window.dispatchEvent(new CustomEvent('crm-toast', { detail: message }));
-};
-
-// Global Data Update Trigger
-export const notifyDataUpdated = () => {
-  window.dispatchEvent(new Event('crm-data-updated'));
 };
 
 // Protected Route Wrapper
@@ -39,14 +32,12 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('crm_theme') || 'dark');
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('crm_theme', theme);
-  }, [theme]);
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }, []);
 
   useEffect(() => {
     const handleToast = (e) => {
@@ -57,10 +48,6 @@ function App() {
     return () => window.removeEventListener('crm-toast', handleToast);
   }, []);
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  };
-
   return (
     <AuthProvider>
       <Router>
@@ -68,17 +55,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/*" element={
             <ProtectedRoute>
-              <MainLayout 
-                theme={theme} 
-                toggleTheme={toggleTheme} 
-                openAddLead={() => setIsAddLeadOpen(true)} 
-              />
+              <MainLayout openAddLead={() => setIsAddLeadOpen(true)} />
               <AddLeadModal 
                 isOpen={isAddLeadOpen} 
                 onClose={() => setIsAddLeadOpen(false)} 
                 onLeadCreated={() => {
-                  notifyDataUpdated();
                   showToast('Lead created successfully!');
+                  window.dispatchEvent(new Event('lead-created'));
                 }} 
               />
             </ProtectedRoute>
@@ -97,25 +80,23 @@ function App() {
   );
 }
 
-function MainLayout({ theme, toggleTheme, openAddLead }) {
+function MainLayout({ openAddLead }) {
   return (
     <div className="app-container">
       <Sidebar />
       <main className="main-content">
-        <Header theme={theme} toggleTheme={toggleTheme} openAddLead={openAddLead} />
+        <Header openAddLead={openAddLead} />
         <div style={styles.contentArea}>
           <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '0 2rem' }}>
             <Routes>
               <Route path="/" element={<Dashboard onOpenAddLead={openAddLead} />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/leads/:id" element={<LeadDetail />} />
-              <Route path="/customers" element={<Customers />} />
               <Route path="/follow-ups" element={<Followups />} />
               <Route path="/test-drives" element={<TestDrives />} />
-              <Route path="/pipeline" element={<Pipeline />} />
-              <Route path="/deals" element={<Deals />} />
               <Route path="/inventory" element={<Inventory />} />
-              <Route path="/reports" element={<Reports />} />
+              <Route path="/deals" element={<Deals />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
         </div>
@@ -124,7 +105,7 @@ function MainLayout({ theme, toggleTheme, openAddLead }) {
   );
 }
 
-function Header({ theme, toggleTheme, openAddLead }) {
+function Header({ openAddLead }) {
   const { user, logout } = useContext(AuthContext);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,8 +135,7 @@ function Header({ theme, toggleTheme, openAddLead }) {
       return;
     }
     const timer = setTimeout(() => {
-      fetch(`http://localhost:3000/api/search?q=${encodeURIComponent(searchQuery)}`)
-        .then(r => r.json())
+      api(`/api/search?q=${encodeURIComponent(searchQuery)}`)
         .then(data => setSearchResults(data))
         .catch(console.error);
     }, 250);
@@ -189,22 +169,7 @@ function Header({ theme, toggleTheme, openAddLead }) {
                     onClick={() => { setSearchQuery(''); setSearchResults(null); navigate(`/leads/${l._id}`); }}
                     style={styles.searchItem}
                   >
-                    <strong>{l.customer_id?.name}</strong> • {l.interested_car} ({l.status})
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {searchResults.customers?.length > 0 && (
-              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)' }}>
-                <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.75rem', fontWeight: '700', color: 'var(--accent-primary)', textTransform: 'uppercase' }}>Customers</p>
-                {searchResults.customers.map(c => (
-                  <div 
-                    key={c._id} 
-                    onClick={() => { setSearchQuery(''); setSearchResults(null); navigate('/customers'); }}
-                    style={styles.searchItem}
-                  >
-                    <strong>{c.name}</strong> • {c.phone} ({c.city || 'India'})
+                    <strong>{l.customer_id?.name || l.customer_name}</strong> • {l.interested_car} ({l.status})
                   </div>
                 ))}
               </div>
@@ -219,13 +184,13 @@ function Header({ theme, toggleTheme, openAddLead }) {
                     onClick={() => { setSearchQuery(''); setSearchResults(null); navigate('/inventory'); }}
                     style={styles.searchItem}
                   >
-                    <strong>{v.brand} {v.model}</strong> • {v.stock_id} (₹{v.selling_price?.toLocaleString()})
+                    <strong>{v.brand} {v.model}</strong> • {v.stock_id} (₹{v.asking_price?.toLocaleString() || v.selling_price?.toLocaleString()})
                   </div>
                 ))}
               </div>
             )}
 
-            {searchResults.leads?.length === 0 && searchResults.customers?.length === 0 && searchResults.vehicles?.length === 0 && (
+            {searchResults.leads?.length === 0 && searchResults.vehicles?.length === 0 && (
               <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                 No records match "{searchQuery}"
               </div>
@@ -235,16 +200,6 @@ function Header({ theme, toggleTheme, openAddLead }) {
       </div>
       
       <div style={styles.headerActions}>
-        {/* Theme Toggle Button (Light/Dark mode) */}
-        <button 
-          onClick={toggleTheme} 
-          className="action-icon-btn" 
-          title={theme === 'dark' ? 'Switch to Light Theme (Screenshot 1)' : 'Switch to Dark Theme (Screenshot 2)'}
-          style={{ width: '38px', height: '38px', borderRadius: '8px' }}
-        >
-          {theme === 'dark' ? <Sun size={17} color="#fbbf24" /> : <Moon size={17} color="#6366f1" />}
-        </button>
-
         {/* Global Add Lead Modal Trigger */}
         <button onClick={openAddLead} className="premium-btn">
           <Plus size={16} /> Add Lead
@@ -280,18 +235,22 @@ function Header({ theme, toggleTheme, openAddLead }) {
 
 function Sidebar() {
   const location = useLocation();
-  const isActive = (path) => location.pathname === path ? styles.activeNavItem : {};
+  const isActive = (path) => {
+    if (path === '/' && location.pathname === '/') return styles.activeNavItem;
+    if (path !== '/' && location.pathname.startsWith(path)) return styles.activeNavItem;
+    return {};
+  };
 
   return (
     <aside style={styles.sidebar}>
-      {/* Brand logo matching Screenshot 1 & 2 */}
+      {/* Brand logo */}
       <div style={styles.logoArea}>
         <div style={styles.logoIcon}>M</div>
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)' }}>motorwise</h2>
           <div style={{ fontSize: '0.72rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: '600' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
-            YOUR DEALERSHIP
+            DEALERSHIP CRM
           </div>
         </div>
       </div>
@@ -302,12 +261,9 @@ function Sidebar() {
           <LayoutGrid size={17} /> Dashboard
         </Link>
         
-        <div style={styles.navSection}>CRM</div>
+        <div style={styles.navSection}>SALES & PIPELINE</div>
         <Link to="/leads" style={{ ...styles.navItem, ...isActive('/leads') }}>
           <Users size={17} /> Leads
-        </Link>
-        <Link to="/customers" style={{ ...styles.navItem, ...isActive('/customers') }}>
-          <Users size={17} /> Customers
         </Link>
         <Link to="/follow-ups" style={{ ...styles.navItem, ...isActive('/follow-ups') }}>
           <CheckSquare size={17} /> Follow-ups
@@ -316,20 +272,12 @@ function Sidebar() {
           <Calendar size={17} /> Test Drives
         </Link>
         
-        <div style={styles.navSection}>INVENTORY & SALES</div>
+        <div style={styles.navSection}>INVENTORY & DEALS</div>
         <Link to="/inventory" style={{ ...styles.navItem, ...isActive('/inventory') }}>
-          <CarFront size={17} /> All Cars
-        </Link>
-        <Link to="/pipeline" style={{ ...styles.navItem, ...isActive('/pipeline') }}>
-          <Kanban size={17} /> Sales Pipeline
+          <CarFront size={17} /> Inventory
         </Link>
         <Link to="/deals" style={{ ...styles.navItem, ...isActive('/deals') }}>
-          <Receipt size={17} /> Deals
-        </Link>
-
-        <div style={styles.navSection}>ANALYZE</div>
-        <Link to="/reports" style={{ ...styles.navItem, ...isActive('/reports') }}>
-          <BarChart3 size={17} /> Reports
+          <Receipt size={17} /> Deals & Bookings
         </Link>
       </nav>
     </aside>

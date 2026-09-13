@@ -1,18 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Clock, Phone, MessageCircle, CheckCircle, Calendar, AlertCircle, Plus, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Clock, Phone, MessageCircle, CheckCircle, Plus, X } from 'lucide-react';
+import api from '../api';
 
 function Followups() {
   const [followups, setFollowups] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
 
   // Form State
   const [customerId, setCustomerId] = useState('');
-  const [leadId, setLeadId] = useState('');
   const [customName, setCustomName] = useState('');
   const [customPhone, setCustomPhone] = useState('');
   const [type, setType] = useState('Call');
@@ -23,8 +21,7 @@ function Followups() {
 
   const fetchFollowups = () => {
     setLoading(true);
-    fetch(`http://localhost:3000/api/followups?filter=${filter}`)
-      .then(res => res.json())
+    api(`/api/followups?filter=${filter}`)
       .then(data => {
         setFollowups(Array.isArray(data) ? data : []);
         setLoading(false);
@@ -37,8 +34,7 @@ function Followups() {
 
   useEffect(() => {
     fetchFollowups();
-    fetch('http://localhost:3000/api/customers')
-      .then(r => r.json())
+    api('/api/customers')
       .then(c => {
         if (Array.isArray(c)) {
           setCustomers(c);
@@ -46,39 +42,25 @@ function Followups() {
         }
       })
       .catch(console.error);
-
-    fetch('http://localhost:3000/api/leads')
-      .then(r => r.json())
-      .then(l => {
-        if (Array.isArray(l)) setLeads(l);
-      })
-      .catch(console.error);
-
-    const handleUpdate = () => fetchFollowups();
-    window.addEventListener('crm-data-updated', handleUpdate);
-    return () => window.removeEventListener('crm-data-updated', handleUpdate);
   }, [filter]);
 
-  const handleMarkCompleted = (id) => {
-    fetch(`http://localhost:3000/api/followups/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'Completed' })
-    }).then(() => {
+  const handleMarkCompleted = async (id) => {
+    try {
+      await api.put(`/api/followups/${id}`, { status: 'Completed' });
       fetchFollowups();
-      window.dispatchEvent(new Event('crm-data-updated'));
       window.dispatchEvent(new CustomEvent('crm-toast', { detail: 'Follow-up marked as completed!' }));
-    });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleCreateFollowup = (e) => {
+  const handleCreateFollowup = async (e) => {
     e.preventDefault();
     const scheduledDateTime = new Date(`${date} ${time}`);
     const finalDate = isNaN(scheduledDateTime.getTime()) ? new Date() : scheduledDateTime;
 
     const payload = {
       customer_id: customerId || (customers.length > 0 ? customers[0]._id : null),
-      lead_id: leadId || null,
       customer_name: customName,
       customer_phone: customPhone,
       type,
@@ -87,21 +69,17 @@ function Followups() {
       scheduled_at: finalDate
     };
 
-    fetch('http://localhost:3000/api/followups', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(r => r.json())
-    .then(() => {
+    try {
+      await api.post('/api/followups', payload);
       setShowModal(false);
       setCustomName('');
       setCustomPhone('');
       setNotes('');
       fetchFollowups();
-      window.dispatchEvent(new Event('crm-data-updated'));
       window.dispatchEvent(new CustomEvent('crm-toast', { detail: 'Follow-up scheduled successfully!' }));
-    });
+    } catch (err) {
+      alert('Error scheduling follow-up: ' + err.message);
+    }
   };
 
   return (
@@ -159,7 +137,7 @@ function Followups() {
               <tbody>
                 {followups.map(f => {
                   const lead = f.lead_id;
-                  const cust = lead?.customer_id;
+                  const cust = f.customer_id || lead?.customer_id;
                   const isOverdue = new Date(f.scheduled_at) < new Date() && f.status !== 'Completed';
 
                   return (
@@ -178,9 +156,9 @@ function Followups() {
                         </div>
                       </td>
                       <td>
-                        <strong style={{ fontSize: '0.95rem' }}>{cust?.name || 'Customer'}</strong>
+                        <strong style={{ fontSize: '0.95rem' }}>{cust?.name || f.customer_name || 'Customer'}</strong>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          {lead?.interested_car ? `Interested in ${lead.interested_car}` : cust?.phone}
+                          {lead?.interested_car ? `Interested in ${lead.interested_car}` : (cust?.phone || f.customer_phone)}
                         </div>
                       </td>
                       <td>
@@ -190,7 +168,7 @@ function Followups() {
                         <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{f.notes || 'Routine follow-up'}</p>
                       </td>
                       <td>
-                        <span style={{ fontSize: '0.875rem' }}>{f.assigned_to?.name || f.assigned_to_name || 'Sales Executive'}</span>
+                        <span style={{ fontSize: '0.875rem' }}>{f.assigned_to?.name || f.assigned_to_name || (typeof f.assigned_to === 'string' ? f.assigned_to : 'Sales Executive')}</span>
                       </td>
                       <td>
                         <span className={`status-badge ${(f.status || '').toLowerCase() === 'completed' ? 'badge-success' : isOverdue ? 'badge-danger' : 'badge-warning'}`}>
@@ -199,12 +177,12 @@ function Followups() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                          {cust?.phone && (
+                          {(cust?.phone || f.customer_phone) && (
                             <>
-                              <a href={`tel:${cust.phone}`} className="action-icon-btn" title="Call">
+                              <a href={`tel:${cust?.phone || f.customer_phone}`} className="action-icon-btn" title="Call">
                                 <Phone size={14} />
                               </a>
-                              <a href={`https://wa.me/91${cust.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="action-icon-btn whatsapp" title="WhatsApp">
+                              <a href={`https://wa.me/91${String(cust?.phone || f.customer_phone).replace(/[^0-9]/g, '').slice(-10)}`} target="_blank" rel="noreferrer" className="action-icon-btn whatsapp" title="WhatsApp">
                                 <MessageCircle size={14} />
                               </a>
                             </>

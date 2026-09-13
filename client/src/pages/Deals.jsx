@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Receipt, CarFront, User, CheckCircle2, AlertCircle, Plus, IndianRupee } from 'lucide-react';
+import { Receipt, CarFront, Plus } from 'lucide-react';
+import api from '../api';
 
 function Deals() {
   const [deals, setDeals] = useState([]);
@@ -14,11 +15,13 @@ function Deals() {
   const [sellingPrice, setSellingPrice] = useState('');
   const [bookingAmount, setBookingAmount] = useState('25000');
   const [dealStatus, setDealStatus] = useState('Booked');
+  const [customCustomerName, setCustomCustomerName] = useState('');
+  const [customCustomerPhone, setCustomCustomerPhone] = useState('');
+  const [customCarName, setCustomCarName] = useState('');
 
   const fetchDeals = () => {
     setLoading(true);
-    fetch('http://localhost:3000/api/deals')
-      .then(res => res.json())
+    api('/api/deals')
       .then(data => {
         setDeals(Array.isArray(data) ? data : []);
         setLoading(false);
@@ -29,27 +32,21 @@ function Deals() {
       });
   };
 
-  const [customCustomerName, setCustomCustomerName] = useState('');
-  const [customCustomerPhone, setCustomCustomerPhone] = useState('');
-  const [customCarName, setCustomCarName] = useState('');
-
   useEffect(() => {
     fetchDeals();
-    fetch('http://localhost:3000/api/vehicles')
-      .then(r => r.json())
+    api('/api/vehicles')
       .then(v => {
         if (Array.isArray(v)) {
           setVehicles(v);
           if (v.length > 0 && !vehicleId) {
             setVehicleId(v[0]._id);
-            if (!sellingPrice) setSellingPrice(v[0].selling_price || '');
+            if (!sellingPrice) setSellingPrice(v[0].selling_price || v[0].asking_price || '');
           }
         }
       })
       .catch(console.error);
 
-    fetch('http://localhost:3000/api/customers')
-      .then(r => r.json())
+    api('/api/customers')
       .then(c => {
         if (Array.isArray(c)) {
           setCustomers(c);
@@ -57,21 +54,17 @@ function Deals() {
         }
       })
       .catch(console.error);
-
-    const handleUpdate = () => fetchDeals();
-    window.addEventListener('crm-data-updated', handleUpdate);
-    return () => window.removeEventListener('crm-data-updated', handleUpdate);
   }, []);
 
   const handleVehicleChange = (vId) => {
     setVehicleId(vId);
     const chosen = vehicles.find(v => v._id === vId);
-    if (chosen && chosen.selling_price) {
-      setSellingPrice(chosen.selling_price);
+    if (chosen && (chosen.selling_price || chosen.asking_price)) {
+      setSellingPrice(chosen.selling_price || chosen.asking_price);
     }
   };
 
-  const handleCreateDeal = (e) => {
+  const handleCreateDeal = async (e) => {
     e.preventDefault();
     const payload = {
       customer_id: customerId || (customers.length > 0 ? customers[0]._id : null),
@@ -79,41 +72,35 @@ function Deals() {
       customer_name: customCustomerName,
       customer_phone: customCustomerPhone,
       car_name: customCarName,
-      selling_price: sellingPrice,
-      booking_amount: bookingAmount,
+      selling_price: Number(sellingPrice),
+      booking_amount: Number(bookingAmount),
       deal_status: dealStatus
     };
 
-    fetch('http://localhost:3000/api/deals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(r => r.json())
-    .then(deal => {
+    try {
+      const deal = await api.post('/api/deals', payload);
       setShowModal(false);
       setCustomCustomerName('');
       setCustomCustomerPhone('');
       setCustomCarName('');
       fetchDeals();
-      window.dispatchEvent(new Event('crm-data-updated'));
       window.dispatchEvent(new CustomEvent('crm-toast', { detail: `Deal ${deal.deal_number || ''} recorded successfully!` }));
-    });
+    } catch (err) {
+      alert('Error creating deal: ' + err.message);
+    }
   };
 
-  const handleUpdateStatus = (id, newStatus) => {
-    fetch(`http://localhost:3000/api/deals/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deal_status: newStatus })
-    }).then(() => {
+  const handleUpdateStatus = async (id, newStatus) => {
+    try {
+      await api.put(`/api/deals/${id}`, { deal_status: newStatus });
       fetchDeals();
-      window.dispatchEvent(new Event('crm-data-updated'));
       window.dispatchEvent(new CustomEvent('crm-toast', { detail: `Deal status updated to ${newStatus}` }));
-    });
+    } catch (err) {
+      alert('Error updating deal: ' + err.message);
+    }
   };
 
-  const totalRevenue = deals.reduce((acc, d) => acc + (d.selling_price || 0), 0);
+  const totalRevenue = deals.reduce((acc, d) => acc + (d.selling_price || d.final_selling_price || 0), 0);
   const totalTokens = deals.reduce((acc, d) => acc + (d.booking_amount || 0), 0);
 
   return (
@@ -175,17 +162,17 @@ function Deals() {
                           <CarFront size={18} />
                         </div>
                         <div>
-                          <strong style={{ fontSize: '0.95rem' }}>{d.vehicle_id?.brand} {d.vehicle_id?.model}</strong>
+                          <strong style={{ fontSize: '0.95rem' }}>{d.vehicle_id?.brand} {d.vehicle_id?.model || d.car_name}</strong>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{d.vehicle_id?.stock_id || 'STK'}</div>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <strong style={{ fontSize: '0.9rem' }}>{d.customer_id?.name || 'Customer'}</strong>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{d.customer_id?.phone}</div>
+                      <strong style={{ fontSize: '0.9rem' }}>{d.customer_id?.name || d.customer_name || 'Customer'}</strong>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{d.customer_id?.phone || d.customer_phone}</div>
                     </td>
                     <td>
-                      <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>₹{d.selling_price ? d.selling_price.toLocaleString() : '—'}</span>
+                      <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>₹{(d.selling_price || d.final_selling_price) ? (d.selling_price || d.final_selling_price).toLocaleString() : '—'}</span>
                     </td>
                     <td>
                       <span style={{ fontWeight: '600', color: '#10b981' }}>₹{d.booking_amount ? d.booking_amount.toLocaleString() : '0'}</span>
@@ -251,7 +238,7 @@ function Deals() {
                 {vehicles.length > 0 ? (
                   <select className="premium-input" value={vehicleId} onChange={e => handleVehicleChange(e.target.value)}>
                     {vehicles.map(v => (
-                      <option key={v._id} value={v._id}>{v.brand} {v.model} ({v.stock_id}) - ₹{v.selling_price?.toLocaleString()}</option>
+                      <option key={v._id} value={v._id}>{v.brand} {v.model} ({v.stock_id}) - ₹{(v.selling_price || v.asking_price)?.toLocaleString()}</option>
                     ))}
                   </select>
                 ) : (

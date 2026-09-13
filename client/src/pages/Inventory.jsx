@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, CarFront } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, CarFront } from 'lucide-react';
+import api from '../api';
 
 function Inventory() {
   const [vehicles, setVehicles] = useState([]);
@@ -23,11 +24,10 @@ function Inventory() {
 
   const fetchVehicles = () => {
     setLoading(true);
-    let url = `http://localhost:3000/api/vehicles?status=${statusFilter}`;
+    let url = `/api/vehicles?status=${statusFilter}`;
     if (search) url += `&search=${encodeURIComponent(search)}`;
 
-    fetch(url)
-      .then(res => res.json())
+    api(url)
       .then(data => { 
         setVehicles(Array.isArray(data) ? data : []); 
         setLoading(false); 
@@ -40,9 +40,6 @@ function Inventory() {
 
   useEffect(() => { 
     fetchVehicles(); 
-    const handleUpdate = () => fetchVehicles();
-    window.addEventListener('crm-data-updated', handleUpdate);
-    return () => window.removeEventListener('crm-data-updated', handleUpdate);
   }, [search, statusFilter]);
 
   const resetForm = () => {
@@ -59,7 +56,7 @@ function Inventory() {
     setShowForm(false);
   };
 
-  const handleSaveCar = (e) => {
+  const handleSaveCar = async (e) => {
     e.preventDefault();
     const payload = { 
       brand, 
@@ -71,22 +68,21 @@ function Inventory() {
       selling_price: Number(price), 
       status 
     };
-    
-    const url = isEditing ? `http://localhost:3000/api/vehicles/${editId}` : 'http://localhost:3000/api/vehicles';
-    const method = isEditing ? 'PUT' : 'POST';
 
-    fetch(url, {
-      method, 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify(payload)
-    }).then(res => res.json()).then(data => { 
+    try {
+      if (isEditing) {
+        await api.put(`/api/vehicles/${editId}`, payload);
+      } else {
+        await api.post('/api/vehicles', payload);
+      }
       resetForm(); 
       fetchVehicles();
-      window.dispatchEvent(new Event('crm-data-updated'));
       window.dispatchEvent(new CustomEvent('crm-toast', { 
         detail: isEditing ? `${payload.brand} ${payload.model} updated!` : `${payload.brand} ${payload.model} added to stock!` 
       }));
-    });
+    } catch (err) {
+      alert('Error saving vehicle: ' + err.message);
+    }
   };
 
   const handleEditClick = (v) => {
@@ -96,20 +92,22 @@ function Inventory() {
     setBrand(v.brand); 
     setModel(v.model); 
     setYear(v.year); 
-    setPrice(v.selling_price); 
+    setPrice(v.selling_price || v.asking_price || ''); 
     setFuel(v.fuel || 'Petrol');
     setTransmission(v.transmission || 'Manual');
     setKmDriven(v.km_driven || 30000);
     setStatus(v.status || 'Available');
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to remove this vehicle from inventory?')) {
-      fetch(`http://localhost:3000/api/vehicles/${id}`, { method: 'DELETE' }).then(() => {
+      try {
+        await api.delete(`/api/vehicles/${id}`);
         fetchVehicles();
-        window.dispatchEvent(new Event('crm-data-updated'));
         window.dispatchEvent(new CustomEvent('crm-toast', { detail: 'Vehicle removed from inventory.' }));
-      });
+      } catch (err) {
+        alert('Error removing vehicle: ' + err.message);
+      }
     }
   };
 
@@ -262,7 +260,7 @@ function Inventory() {
                     </td>
                     <td>
                       <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                        ₹{v.selling_price ? v.selling_price.toLocaleString() : 'N/A'}
+                        ₹{(v.selling_price || v.asking_price) ? (v.selling_price || v.asking_price).toLocaleString() : 'N/A'}
                       </strong>
                     </td>
                     <td>
