@@ -1,0 +1,1114 @@
+Motorwise CRM — UI/UX Improvement PRD
+
+Document Version: 3.0
+Product: Motorwise CRM
+Scope: UI/UX redesign of the existing used-car dealership CRM
+Target Business: Single dealership / ~200 cars / small-to-medium sales team
+Primary Users: Sales Executives, Sales Managers, Owner/Admin
+Platform: Desktop-first responsive web application, optimized for mobile sales usage
+
+1. PRODUCT OBJECTIVE
+
+Motorwise already has the right basic structure:
+- Dashboard
+- Leads
+- Test Drives
+- Pipeline
+- Inventory
+
+The next step should not be adding unnecessary modules.
+
+The objective is to make these modules feel like one connected dealership operating system.
+
+The redesigned CRM should allow a salesperson to understand within a few seconds:
+- Who do I need to call today?
+- Which customers are overdue?
+- Which customers want which cars?
+- Which test drives are coming up?
+- Which deals are close to booking?
+- Which cars are sitting too long?
+
+The key UX principle should be:
+Motorwise tells the employee what to do next instead of only showing stored data.
+
+2. CURRENT UI ASSESSMENT
+
+What is already good:
+- Clean dark theme
+- Easy-to-understand sidebar
+- Large readable typography
+- Consistent card style
+- Logical primary navigation
+- Clear branding
+- Dashboard is not overloaded
+
+Main problems:
+1. Too much unused screen space.
+2. Dashboard does not tell the salesperson what to do next.
+3. KPI cards provide totals but little operational value.
+4. No visible follow-up information.
+5. No overdue lead warning.
+6. No quick-add actions.
+7. No global search.
+8. Navigation icons use emoji-like styling and feel inconsistent.
+9. Profile/header area consumes space without providing actions.
+10. Recent Activity is too large relative to its importance.
+11. Pipeline information is missing from dashboard.
+12. Inventory ageing is missing.
+13. No upcoming test-drive section.
+14. No role-specific dashboard.
+15. No clear priority hierarchy between urgent and informational items.
+
+3. UX PHILOSOPHY
+
+3.1 Action First
+Important screens should prioritize:
+- What needs attention
+- Who needs a call
+- What is overdue
+- What is scheduled next
+
+Instead of only:
+- Total leads
+- Total cars
+- Total sales
+
+3.2 Maximum 2–3 Clicks
+Common actions should take no more than 2–3 clicks.
+Examples:
+Lead → Call
+Lead → Schedule Follow-up
+Lead → Schedule Test Drive
+Car → View Interested Customers
+Lead → Book Vehicle
+
+3.3 Minimal Data Entry
+Salespeople do not want to fill long forms.
+Initial lead creation should take around 15–30 seconds.
+Detailed information can be added later.
+
+3.4 One Source of Truth
+Customer, car, test drive, follow-up and deal information should be connected.
+A salesperson should not have to manually update:
+Lead = Booked
+Car = Reserved
+Deal = Booking
+
+One action should update connected records automatically.
+
+3.5 Mobile-Friendly Sales Workflow
+Sales executives will frequently use Motorwise while:
+- Calling customers
+- Walking around the showroom
+- Standing beside vehicles
+- Conducting test drives
+- Speaking to walk-in customers
+
+Core actions must work exceptionally well on mobile.
+
+4. NEW NAVIGATION STRUCTURE
+
+MOTORWISE
+
+OVERVIEW
+- Dashboard
+
+CRM
+- Leads
+- Follow-ups
+- Customers
+- Test Drives
+
+SALES
+- Pipeline
+- Bookings
+- Deliveries
+
+INVENTORY
+- All Cars
+- Add Car
+
+REPORTING
+- Reports
+
+MANAGEMENT
+- Employees
+- Settings
+
+For a sales executive, unnecessary management items can be hidden.
+
+5. SIDEBAR UX IMPROVEMENTS
+
+Use consistent professional icons instead of emoji.
+Examples:
+Dashboard      Grid icon
+Leads          Users icon
+Follow-ups     Clock icon
+Customers      User icon
+Test Drives    Steering wheel / Car icon
+Pipeline       Kanban icon
+Bookings       Receipt icon
+Inventory      Car icon
+Reports        Chart icon
+Settings       Gear icon
+
+Use one icon library such as Lucide or Heroicons.
+Do not mix icon styles.
+
+Active navigation:
+- Blue background
+- Brighter text
+- Blue icon
+- Small left indicator
+
+Inactive:
+- Muted gray
+- Highlight on hover
+
+6. SIDEBAR COLLAPSE
+
+Desktop users should be able to collapse the sidebar.
+Expanded:
+[Icon] Dashboard
+[Icon] Leads
+[Icon] Follow-ups
+
+Collapsed:
+[Icon]
+[Icon]
+[Icon]
+
+This creates more horizontal space for lead and inventory tables.
+
+7. HEADER REDESIGN
+
+Recommended global header:
+[Search customers, cars, phone...]      [+ Add Lead]      Notifications      Amit Sharma ▼
+
+Remove duplicate “Motorwise CRM” branding from the top header because branding already exists in the sidebar.
+
+8. GLOBAL SEARCH
+
+Placeholder:
+Search customer, phone, car, registration...
+
+Search should support:
+- Customer name
+- Phone number
+- Lead ID
+- Registration number
+- Stock ID
+- Car brand
+- Car model
+
+Example result:
+CUSTOMER
+Rahul Sharma
+Lead: Interested
+Assigned: Amit
+
+CAR
+2021 Hyundai Creta SX
+WB02AB1234
+Available
+
+9. GLOBAL QUICK ADD
+
+Place a prominent + Add button in the header.
+Clicking opens:
+- Add Lead
+- Add Customer
+- Add Car
+- Schedule Test Drive
+- Add Follow-up
+
+Most common/default action: Add Lead
+
+10. DASHBOARD REDESIGN
+
+The current dashboard should move from a passive reporting screen to an action dashboard.
+
+Recommended hierarchy:
+Welcome back, Amit
+Tuesday, 9 September
+Here's what needs your attention today.
+
+4 New Leads    7 Follow-ups    2 Overdue    3 Test Drives
+
+TODAY'S ACTIONS              PIPELINE OVERVIEW
+UPCOMING TEST DRIVES         INVENTORY ATTENTION
+RECENT ACTIVITY
+
+11. DASHBOARD KPI CARDS
+
+For Sales Executive:
+- My New Leads: 8, +3 today
+- Follow-ups Today: 12, 4 remaining
+- Overdue: 3, needs attention
+- Test Drives Today: 4, next at 1:30 PM
+- Negotiations: 5, ₹42L pipeline
+- Bookings This Month: 7
+
+12. MANAGER DASHBOARD KPIS
+
+Manager sees:
+- New Leads Today
+- Unassigned Leads
+- Overdue Follow-ups
+- Test Drives Today
+- Bookings This Month
+- Cars Sold This Month
+- Available Inventory
+- 90+ Day Inventory
+
+This should be determined by user role.
+
+13. DASHBOARD — TODAY'S ACTIONS
+
+Example:
+10:30 | Rahul Sharma | Call | Creta | Hot
+12:00 | Suman Das | Test Drive | Nexon | High
+2:30  | Raj Malhotra | Follow-up | Seltos | Warm
+4:00  | Rohit Sen | Negotiation | City | Hot
+
+Quick actions:
+- Call
+- WhatsApp
+- Complete
+- Reschedule
+
+14. DASHBOARD — OVERDUE SECTION
+
+Example:
+Rahul Sharma
+Follow-up overdue by 2 hours
+Hyundai Creta
+[Call] [Reschedule]
+
+Amit Das
+Follow-up overdue by 1 day
+Maruti Swift
+[Call] [Reschedule]
+
+If there are no overdue items:
+✓ You're all caught up.
+
+15. DASHBOARD — PIPELINE OVERVIEW
+
+New            18
+Contacted      14
+Interested     11
+Test Drive      7
+Negotiation     5
+Booked          3
+
+Use a compact horizontal funnel or stage cards.
+Each stage should be clickable.
+
+16. DASHBOARD — UPCOMING TEST DRIVES
+
+11:00 AM
+Rahul Sharma
+2021 Hyundai Creta
+Salesperson: Amit
+
+2:30 PM
+Rohit Sen
+2022 Tata Nexon
+Salesperson: Raj
+
+Actions:
+- Open
+- Reschedule
+- Complete
+
+17. DASHBOARD — INVENTORY ATTENTION
+
+For manager/owner:
+- 12 cars: 60+ days old
+- 5 cars: 90+ days old
+- 3 cars: Under repair
+- 4 cars: Reserved
+
+Every item should be clickable.
+
+18. DASHBOARD — RECENT ACTIVITY
+
+Reduce its height.
+Example:
+12:42   Amit scheduled a test drive for Rahul
+12:20   Raj added a new lead
+11:45   Creta WB02AB1234 was reserved
+10:30   Suman's follow-up was completed
+
+Show latest five items only.
+
+19. LEADS PAGE REDESIGN
+
+Top:
+Leads                         [+ Add Lead]
+Search leads...
+All   Mine   New   Today   Overdue   Hot   Test Drive   Negotiation
+
+Filters:
+- Salesperson
+- Source
+- Stage
+- Interested Car
+- Date
+
+20. LEADS TABLE
+
+Recommended columns:
+Customer | Interested Car | Budget | Stage | Owner | Next Action | Age
+
+Example:
+Rahul Sharma | Creta | ₹8–10L | Interested | Amit | Today 4 PM | 2d
+Rohit Das | Swift | ₹5–6L | Test Drive | Raj | Tomorrow | 5d
+
+21. LEAD STATUS DESIGN
+
+Status chips:
+New          Gray/Blue
+Contacted    Blue
+Interested   Purple
+Follow-up    Amber
+Test Drive   Cyan
+Negotiation  Orange
+Booked       Green
+Won          Green
+Lost         Red
+
+Priority:
+Hot     Red
+Warm    Amber
+Cold    Gray
+
+Status and priority should look different visually.
+
+22. ADD LEAD UX
+
+Use + Add Lead to open a right-side drawer.
+
+Quick Lead Form:
+- Customer Name *
+- Phone Number *
+- Interested Car
+- Budget
+- Lead Source *
+- Assigned To *
+- Buying Timeline
+- Priority
+- Notes
+
+[Cancel] [Create Lead]
+
+23. PROGRESSIVE DATA ENTRY
+
+After lead creation:
+Lead created successfully.
+[Open Lead]
+[Schedule Follow-up]
+[Add Another]
+
+Do not require the salesperson to enter 15–20 fields immediately.
+
+24. LEAD DETAILS PAGE
+
+Header:
+← Leads
+Rahul Sharma                    HOT
+98765xxxxx
+Interested • 2 days old
+[Call] [WhatsApp] [Follow-up] [Test Drive] [More]
+
+25. LEAD INFORMATION LAYOUT
+
+Left/main area:
+- Customer Requirement
+- Interested Cars
+- Activity Timeline
+
+Right-side panel:
+- Assigned To
+- Lead Source
+- Next Action
+- Stage
+- Buying Timeline
+
+26. SALES STAGE COMPONENT
+
+Show:
+New → Contacted → Interested → Test Drive → Negotiation → Booked → Won
+
+Current stage highlighted.
+For important transitions, require supporting actions.
+Example: Moving to Booked → Create booking first.
+
+27. CUSTOMER REQUIREMENT CARD
+
+Budget: ₹8L – ₹10L
+Looking For: SUV
+Brand: Hyundai / Kia
+Transmission: Automatic
+Fuel: Petrol
+Buying Timeline: Within 7 days
+
+Include Edit Requirement.
+
+28. INTERESTED CARS CARD
+
+Example:
+2021 Hyundai Creta SX AT
+₹9.25L
+38,000 KM
+Petrol • Automatic
+AVAILABLE
+[View Car]
+[Schedule Test Drive]
+
+Also provide:
+- + Add Interested Car
+- Find Matching Cars
+
+29. ACTIVITY TIMELINE UX
+
+Example:
+12:30 PM — Test drive scheduled — 2021 Hyundai Creta
+11:45 AM — Amit added note — “Customer wants automatic...”
+10:20 AM — Customer contacted
+10:10 AM — Lead created from Facebook
+
+Use icons to distinguish activity types.
+
+30. FOLLOW-UP PAGE
+
+Tabs:
+- Today
+- Upcoming
+- Overdue
+- Completed
+
+Example card:
+11:00 AM
+Rahul Sharma
+Hyundai Creta
+Phone Call
+[Call]
+[Complete]
+[Reschedule]
+
+31. COMPLETING A FOLLOW-UP
+
+Modal:
+How did the follow-up go?
+- Customer Interested
+- No Answer
+- Call Later
+- Test Drive
+- Negotiation
+- Not Interested
+
+Note field.
+
+What happens next?
+- Schedule follow-up
+- Test drive
+- Move to negotiation
+- Mark lost
+
+[Complete Follow-up]
+
+32. TEST DRIVE PAGE
+
+Header:
+Test Drives                [+ Schedule Test Drive]
+Today | Upcoming | Completed | Cancelled
+
+Example:
+11:30 AM
+Rahul Sharma
+2021 Hyundai Creta SX
+Salesperson: Amit
+Showroom
+SCHEDULED
+[Open]
+[Complete]
+[Reschedule]
+
+33. PIPELINE UX
+
+Kanban view:
+NEW | INTERESTED | TEST DRIVE | NEGOTIATION | BOOKED
+
+Card should show:
+- Customer
+- Interested vehicle
+- Budget
+- Assigned salesperson
+- Next follow-up
+- Lead age
+
+34. PIPELINE DRAG & DROP
+
+Dragging Interested → Test Drive:
+If a test drive does not exist, open Schedule Test Drive.
+
+Dragging Negotiation → Booked:
+Open Create Booking.
+
+This keeps the sales process consistent.
+
+35. INVENTORY PAGE REDESIGN
+
+Top:
+Inventory                       [+ Add Car]
+200 Cars
+Available 145
+Reserved 12
+Sold 28
+Repair 8
+90+ Days 7
+
+Search:
+Search model, registration, stock ID...
+
+Filters:
+- Brand
+- Model
+- Fuel
+- Transmission
+- Price
+- Status
+- Stock Age
+
+36. INVENTORY CARD/TABLE VIEW
+
+Allow switch between Cards and Table.
+
+Card:
+[CAR PHOTO]
+2021 Hyundai Creta SX
+₹9,25,000
+38,000 KM
+Petrol
+Automatic
+45 days in stock
+AVAILABLE
+7 interested customers
+
+37. CAR DETAIL PAGE
+
+Header:
+2021 Hyundai Creta SX
+WB02AB1234
+Stock #MW1024
+AVAILABLE
+₹9,25,000
+
+Main actions:
+- Add Interested Customer
+- Schedule Test Drive
+- Reserve Vehicle
+
+38. CAR DETAIL INFORMATION
+
+Vehicle:
+- Brand
+- Model
+- Variant
+- Year
+- Fuel
+- Transmission
+- KM
+- Owners
+- Colour
+
+Commercial:
+- Purchase Price
+- Asking Price
+- Minimum Selling Price
+- Potential Margin
+
+Commercial information should be restricted by role if needed.
+
+CRM Activity:
+- Interested Leads
+- Test Drives
+- Negotiations
+- Bookings
+
+39. INVENTORY AGE VISUAL
+
+Stock Age: 43 DAYS
+Purchased: 28 July 2026
+Status: Attention
+
+Classification:
+0–30    Fresh
+31–60   Attention
+61–90   High
+90+     Critical
+
+40. BOOKING UX
+
+Create Booking
+Customer: Rahul Sharma
+Vehicle: 2021 Hyundai Creta SX
+Selling Price: ₹9,20,000
+Booking Amount: ₹25,000
+Payment Mode: UPI
+Expected Delivery: 15 Sep 2026
+[Create Booking]
+
+After confirmation:
+✓ Booking created
+Lead → Booked
+Vehicle → Reserved
+
+41. NOTIFICATIONS CENTRE
+
+Bell icon in header.
+Example notifications:
+- Follow-up overdue — Rahul Sharma
+- Test drive in 30 minutes — Rohit Sen
+- New lead assigned — Amit Das
+
+Show unread notification badge.
+
+42. EMPTY STATES
+
+Recent activity:
+No activity yet
+Your dealership activity will appear here once you start adding leads and cars.
+[Add First Lead]
+
+Inventory:
+No cars added yet.
+[Add Your First Car]
+
+Empty states should guide users.
+
+43. LOADING STATES
+
+Use skeleton loaders for:
+- Dashboard cards
+- Tables
+- Car cards
+- Lead detail
+- Activity timeline
+
+Avoid blank screens.
+
+44. ERROR STATES
+
+Example:
+We couldn't load your leads.
+[Try Again]
+
+Avoid technical messages such as “Error 500 fetching rows.”
+
+45. CONFIRMATION UX
+
+Do not use browser-style confirmation popups.
+
+For destructive actions:
+Mark Rahul Sharma as Lost?
+Reason *
+[Customer bought elsewhere ▼]
+Note
+[Cancel] [Mark Lost]
+
+46. TOAST NOTIFICATIONS
+
+Use small confirmation messages.
+Examples:
+✓ Lead created successfully
+✓ Follow-up scheduled for tomorrow at 11 AM
+✓ Vehicle reserved
+
+Avoid interruptive modals after normal actions.
+
+47. VISUAL DESIGN SYSTEM
+
+Keep current dark theme.
+
+Background:
+Very dark navy rather than pure black.
+
+Surface:
+Cards slightly lighter than background.
+
+Primary:
+Use Motorwise blue consistently.
+
+Status colors:
+- Green = success
+- Amber = attention
+- Red = overdue/problem
+- Blue = active/information
+
+Avoid excessive gradients and glows.
+
+48. TYPOGRAPHY
+
+Recommended: Inter or similar modern UI font.
+
+Hierarchy:
+Page title       28–32px / Semibold
+Section title    20–24px / Semibold
+Card title       14–16px / Medium
+Body             14–16px
+Table             14px
+Metadata          12–13px
+
+Do not use all-caps extensively except small section labels.
+
+49. SPACING
+
+Use consistent 8px spacing system:
+4px
+8px
+16px
+24px
+32px
+48px
+
+Current cards can be slightly tighter to fit more information above the fold.
+
+50. CARD DESIGN
+
+Use:
+- Border radius: 10–12px
+- Subtle border
+- Minimal shadow
+
+Avoid extremely rounded SaaS-style cards.
+
+51. BUTTON HIERARCHY
+
+Primary:
+- + Add Lead
+- Create Booking
+- Schedule Test Drive
+
+Secondary:
+- Edit
+- Reschedule
+- View Details
+
+Destructive:
+- Mark Lost
+- Cancel Booking
+
+Only one main primary action per form where possible.
+
+52. TABLES
+
+CRM tables need:
+- Sticky header
+- Row hover
+- Pagination
+- Search
+- Sorting
+- Filters
+- Column visibility
+- Responsive layout
+
+Recommended default: 25 rows/page
+Options: 25 / 50 / 100
+
+53. ROW CLICK BEHAVIOUR
+
+Clicking anywhere on a lead row opens the lead.
+Quick actions on hover:
+- Call
+- WhatsApp
+- Follow-up
+
+54. MOBILE NAVIGATION
+
+On mobile, replace sidebar with bottom navigation:
+Dashboard
+Leads
++
+Follow-ups
+Inventory
+
+The centre + action opens:
+- Add Lead
+- Add Follow-up
+- Test Drive
+
+55. MOBILE LEAD SCREEN
+
+Top:
+Rahul Sharma
+98765xxxxx
+[Call] [WhatsApp]
+
+Then:
+HOT
+Interested
+Next Follow-up
+Today 4:00 PM
+[Complete]
+
+Use large tap targets.
+
+56. RESPONSIVE REQUIREMENTS
+
+Desktop: 1440px+
+Laptop: 1024–1439px
+Tablet: 768–1023px
+Mobile: 320–767px
+
+Sidebar:
+Desktop → expanded/collapsible
+Tablet → collapsed
+Mobile → bottom navigation
+
+57. ACCESSIBILITY
+
+Minimum requirements:
+- Clear text contrast
+- Keyboard navigation
+- Visible focus state
+- Buttons at least ~40px high
+- Status must not depend entirely on colour
+- Forms need labels
+- Error messages displayed beside field
+- Icons should have tooltips where meaning may be unclear
+
+58. ROLE-BASED UX
+
+Sales Executive:
+- My Leads
+- My Follow-ups
+- My Test Drives
+- My Pipeline
+- My Bookings
+
+Manager:
+- Team Leads
+- Unassigned Leads
+- Overdue Follow-ups
+- Pipeline
+- Team Performance
+- Inventory
+
+Owner/Admin:
+- Sales
+- Conversion
+- Inventory Age
+- Employee Performance
+- Revenue
+- Stock
+
+59. SUGGESTED NEW DASHBOARD WIREFRAME
+
+┌────────────────────────────────────────────────────────────────────┐
+│ Search customers, cars, phone...     + Add Lead   🔔   Amit ▼    │
+├────────────────────────────────────────────────────────────────────┤
+│ Good morning, Amit                                                 │
+│ Tuesday, 9 September                                               │
+│ [New Leads] [Follow-ups] [Overdue] [Test Drives] [Negotiations]  │
+├───────────────────────────────┬────────────────────────────────────┤
+│ TODAY'S ACTIONS               │ PIPELINE                           │
+│ 10:30 Rahul   Call            │ New          18                    │
+│ 12:00 Suman   Test Drive      │ Interested   11                    │
+│ 2:30  Rohit   Follow-up       │ Test Drive    7                    │
+│ 4:00  Amit    Negotiation     │ Negotiation   5                    │
+│                               │ Booked        3                    │
+├───────────────────────────────┼────────────────────────────────────┤
+│ UPCOMING TEST DRIVES          │ INVENTORY ATTENTION                │
+│ Rahul – Creta – 12:00         │ 12 cars > 60 days                  │
+│ Rohit – Nexon – 3:00          │ 5 cars > 90 days                   │
+│                               │ 3 cars under repair                │
+├───────────────────────────────┴────────────────────────────────────┤
+│ RECENT ACTIVITY                                           View All │
+│ 12:42 Test drive scheduled                                        │
+│ 11:20 Vehicle reserved                                            │
+└────────────────────────────────────────────────────────────────────┘
+
+60. PAGE HIERARCHY
+
+/dashboard
+/leads
+/leads/:id
+/followups
+/customers
+/customers/:id
+/test-drives
+/pipeline
+/bookings
+/bookings/:id
+/inventory
+/inventory/:id
+/reports
+/employees
+/settings
+
+61. UX AUTOMATION
+
+Lead created:
+- Show confirmation
+- Open Lead / Schedule Follow-up
+
+Follow-up completed:
+- Ask for Next Action
+
+Test drive completed:
+- Ask Result
+
+Negotiation starts:
+- Move lead to Negotiation
+
+Booking created:
+- Lead → Booked
+- Vehicle → Reserved
+
+Sale completed:
+- Lead → Won
+- Vehicle → Sold
+- Deal → Completed
+
+62. PERFORMANCE EXPECTATIONS
+
+Targets:
+- Dashboard visible within ~2 sec
+- Search results under ~1 sec
+- Lead modal opens immediately
+- Filters update without full-page reload
+- Optimistic UI where appropriate
+- Images lazy-loaded
+- Car thumbnails compressed
+
+With only ~200 cars, the application should feel extremely fast.
+
+63. PHASE 1 — UI FOUNDATION
+
+Build first:
+1. New sidebar
+2. New header
+3. Global search
+4. Quick Add Lead
+5. Updated design tokens
+6. Standard buttons
+7. Standard inputs
+8. Status badges
+9. Toast notifications
+10. Responsive framework
+
+64. PHASE 2 — CORE CRM UX
+
+Build:
+1. Redesigned Leads list
+2. Add Lead drawer
+3. Lead Detail page
+4. Follow-up workflow
+5. Activity timeline
+6. Interested cars
+7. Quick actions
+8. Duplicate phone detection
+
+65. PHASE 3 — SALES WORKFLOW UX
+
+Build:
+1. Test Drive page
+2. Pipeline Kanban
+3. Negotiation UI
+4. Booking UI
+5. Payment status
+6. Won/Lost flow
+7. Automatic connected status changes
+
+66. PHASE 4 — INVENTORY UX
+
+Build:
+1. Inventory KPI header
+2. Card/table views
+3. Car Detail screen
+4. Inventory age
+5. Interested customers
+6. Test drives per vehicle
+7. Reservation state
+
+67. PHASE 5 — MANAGEMENT UX
+
+Build:
+1. Manager dashboard
+2. Role-aware dashboards
+3. Lead funnel
+4. Employee performance
+5. Lead source performance
+6. Inventory ageing report
+7. Lost reason reporting
+
+68. ACCEPTANCE CRITERIA
+
+The redesign is successful when a salesperson can:
+1. Add a lead in under 30 seconds.
+2. Find an existing customer using phone number quickly.
+3. See every follow-up due today immediately after login.
+4. Identify overdue customers without opening multiple pages.
+5. Call or WhatsApp a customer directly from Motorwise.
+6. Link a customer with one or more cars.
+7. Schedule a test drive in a few clicks.
+8. Move a customer through the sales process without manually updating multiple modules.
+9. Create a booking that automatically reserves the vehicle.
+10. Complete a sale that automatically updates the customer, lead, deal and vehicle.
+11. Use the essential CRM workflow comfortably from a phone.
+
+A manager should be able to answer within approximately 30 seconds:
+- How many leads came today?
+- How many are untouched?
+- Which salesperson has overdue follow-ups?
+- How many test drives are happening today?
+- How many deals are in negotiation?
+- Which vehicles have been sitting for over 90 days?
+- How many cars were sold this month?
+
+69. FEATURES TO AVOID DURING THIS REDESIGN
+
+Do not add:
+- AI chatbot
+- Excessive animations
+- Fancy 3D charts
+- WhatsApp API automation
+- Accounting system
+- Finance/loan platform
+- RTO workflow
+- Marketing automation
+- Custom dashboard builder
+- Native mobile application
+- Complicated employee permissions
+
+First make the core dealership workflow excellent.
+
+70. FINAL PRODUCT DIRECTION
+
+The current Motorwise interface looks like a clean CRM prototype.
+The redesign should turn it into a daily dealership workspace.
+
+The biggest improvement should not be visual decoration. It should be information priority.
+
+Today the dashboard primarily tells the salesperson:
+“There are 0 leads, 0 test drives, 0 cars and 0 sales.”
+
+The improved version should eventually tell the salesperson:
+“You have 3 new customers, Rahul needs a call at 10:30, Suman's follow-up is overdue, your Creta test drive starts at 12:00, and two customers are currently negotiating.”
+
+That difference is what will make Motorwise feel like a genuine industry CRM rather than just a database with a dark UI.
+
+HIGHEST-PRIORITY REDESIGN
+
+For the current Motorwise dashboard, redesign in this order:
+1. Header
+2. KPI/action cards
+3. Today's Actions
+4. Pipeline
+5. Upcoming Test Drives
+6. Inventory Alerts
+7. Compact Recent Activity
+8. Sidebar icons/navigation

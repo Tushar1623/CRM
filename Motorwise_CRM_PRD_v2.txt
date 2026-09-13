@@ -1,0 +1,1086 @@
+Motorwise CRM
+Used Car Dealership CRM – Industry-Level Basic Version
+PRD Version: 2.0
+Target: Single used-car dealership, approximately 200 cars
+Users: Owner, Sales Manager, Sales Executives
+Platform: Web first, mobile responsive
+Recommended backend: Supabase/PostgreSQL
+Goal: Keep the CRM simple enough for salespeople to actually use while giving management complete visibility.
+
+1. CURRENT PRODUCT REVIEW
+
+Current Lead Management screen has:
+- Customer name
+- Phone
+- Email
+- Lead source
+- Priority
+- Add Lead
+- Basic lead table
+- Dashboard
+- Leads
+- Inventory
+
+This is a good starting point.
+
+However, the current form is mainly collecting a contact rather than creating a usable sales lead.
+
+A salesperson should be able to understand something like:
+“Rahul called looking for a 2021–2023 automatic Creta, budget ₹10 lakh, wants to buy this month, prefers white, test drive Saturday, next call Friday at 11 AM.”
+
+The CRM needs to capture that sales context.
+
+2. MAIN IMPROVEMENTS TO CURRENT LEAD SCREEN
+
+Current:
+Name | Phone | Email | Source | Priority
+
+Recommended:
+Customer
+Phone
+Requirement / Interested Car
+Budget
+Source
+Assigned To
+Stage
+Priority
+Next Follow-up
+Lead Age
+Actions
+
+Example:
+Rahul Sharma | Creta 2021 | ₹8–10L | Amit | Follow-up | Today 4 PM | 2d
+Rohit Das | Swift 2020 | ₹5–6L | Raj | Test Drive | 11 Sep 11 AM | 4d
+Sanjay Roy | Nexon | ₹8L | Amit | Negotiation | Today 2 PM | 1d
+
+3. RECOMMENDED NAVIGATION
+
+MOTORWISE CRM
+
+Dashboard
+
+CRM
+- Leads
+- Follow-ups
+- Customers
+- Test Drives
+
+INVENTORY
+- All Cars
+- Add Car
+
+SALES
+- Pipeline
+- Bookings / Deals
+- Deliveries
+
+REPORTS
+- Sales
+- Leads
+- Performance
+
+MANAGEMENT
+- Employees
+- Settings
+
+4. COMPLETE CUSTOMER-TO-SALE WORKFLOW
+
+NEW ENQUIRY
+↓
+Lead Created
+↓
+Salesperson Assigned
+↓
+Customer Contacted
+↓
+Requirement Captured
+↓
+Matching Cars Selected
+↓
+Follow-up
+↓
+Test Drive
+↓
+Negotiation
+↓
+Booking
+↓
+Payment
+↓
+Delivery
+↓
+SOLD
+
+At any stage:
+Customer not interested
+↓
+Lost Lead
+↓
+Lost Reason Recorded
+
+5. LEAD MANAGEMENT
+
+Lead stages:
+- New
+- Contacted
+- Qualified
+- Interested
+- Follow-up
+- Test Drive
+- Negotiation
+- Booked
+- Won
+- Lost
+
+6. ADD LEAD FORM
+
+Mandatory:
+- Customer Name
+- Phone Number
+- Lead Source
+- Assigned Salesperson
+
+Optional quick fields:
+- Interested Car
+- Budget
+- Priority
+
+Email should not be prominent. Move it to customer details.
+
+7. DUPLICATE CUSTOMER PROTECTION
+
+Whenever a phone number is entered, check the database.
+
+If number already exists:
+“Customer Already Exists”
+
+Show:
+- Customer name
+- Last enquiry
+- Interested car
+- Assigned salesperson
+- Open Existing Lead button
+
+Do not allow accidental duplicates.
+
+8. LEAD DETAILS PAGE
+
+Header should show:
+- Customer name
+- Phone number
+- Priority
+- Assigned salesperson
+- Source
+- Stage
+- Lead age
+
+Quick buttons:
+- Call
+- WhatsApp
+- Follow-up
+- Test Drive
+
+Sections:
+- Customer Requirement
+- Interested Cars
+- Follow-ups
+- Test Drives
+- Negotiation / Deal
+- Activity Timeline
+
+9. CUSTOMER REQUIREMENT
+
+Fields:
+- Budget Min
+- Budget Max
+- Brand
+- Model
+- Body Type
+- Fuel
+- Transmission
+- Year From
+- Maximum KM
+- Preferred Colour
+- Buying Timeline
+- Finance Required
+- Exchange Car
+
+Most important:
+- Budget
+- Car/Model
+- Transmission
+- Buying Timeline
+
+10. BUYING TIMELINE
+
+Options:
+- Immediately
+- Within 7 Days
+- Within 30 Days
+- 1–3 Months
+- Just Exploring
+
+Suggested priority:
+- Immediately -> High
+- 7 Days -> High
+- 30 Days -> Medium
+- 1–3 Months -> Medium
+- Exploring -> Low
+
+11. INTERESTED CARS
+
+A customer should be able to have multiple interested vehicles.
+
+Example:
+- 2021 Hyundai Creta SX – ₹9.20L
+- 2022 Kia Seltos HTK – ₹10.50L
+- 2021 MG Hector – ₹11.20L
+
+This links Leads directly to Inventory.
+
+12. INVENTORY MATCHING
+
+Inside lead page add “Find Matching Cars”.
+
+Example customer requirement:
+Budget: ₹8L–₹10L
+SUV
+Automatic
+2020+
+
+CRM displays matching inventory cars.
+
+This is simple database filtering; AI is not required.
+
+13. FOLLOW-UP SYSTEM
+
+Each salesperson should see today’s follow-ups.
+
+Fields:
+- Customer
+- Date
+- Time
+- Type
+- Notes
+- Assigned employee
+- Status
+
+Types:
+- Call
+- WhatsApp
+- Showroom Visit
+- Test Drive
+- Negotiation
+- Other
+
+Status:
+- Pending
+- Completed
+- Rescheduled
+- Missed
+
+14. FOLLOW-UP DISCIPLINE RULE
+
+Every active lead should have a next action.
+
+When a follow-up is completed, ask:
+- Schedule another follow-up
+- Schedule Test Drive
+- Move to Negotiation
+- Mark Won
+- Mark Lost
+
+15. OVERDUE FOLLOW-UPS
+
+Dashboard and lead list should show overdue items prominently.
+
+Managers should see overdue follow-ups by salesperson.
+
+16. CALL AND WHATSAPP BUTTONS
+
+Every customer should have:
+- Call
+- WhatsApp
+
+On mobile:
+- Call opens dialer
+- WhatsApp opens customer chat
+
+Full WhatsApp API is not needed for Version 1.
+
+17. NOTES AFTER CUSTOMER CONTACT
+
+Salesperson should add a short note after interaction.
+
+Example:
+“Customer likes the Creta but wants ₹40,000 discount. Discussing with family. Call Friday.”
+
+18. ACTIVITY TIMELINE
+
+Important actions should be recorded automatically.
+
+Example:
+- Lead created from Facebook
+- Assigned to Amit
+- Customer contacted
+- Interested in Creta SX
+- Follow-up scheduled
+- Test drive scheduled
+
+19. LEAD TABLE IMPROVEMENTS
+
+Recommended columns:
+- Customer
+- Interested Car
+- Budget
+- Source
+- Salesperson
+- Stage
+- Priority
+- Next Follow-Up
+- Age
+- Actions
+
+20. LEAD QUICK ACTIONS
+
+Provide quick actions:
+- Call
+- WhatsApp
+- Follow-up
+- Open
+
+Delete should be restricted to manager/admin.
+
+21. LEAD FILTERS
+
+Quick filters:
+- All Leads
+- My Leads
+- New
+- Hot
+- Follow-up Today
+- Overdue
+- Test Drives
+- Negotiation
+- Booked
+- Lost
+
+Additional:
+- Salesperson
+- Source
+- Date Range
+- Interested Car
+- Status
+- Priority
+
+22. LEAD AGE
+
+Show how old every open lead is:
+- 2 hours
+- 1 day
+- 4 days
+- 12 days
+- 32 days
+
+Older leads without activity should be highlighted.
+
+23. INVENTORY MODULE
+
+Each car record should include:
+
+Identity:
+- Stock ID
+- Registration Number
+- Brand
+- Model
+- Variant
+- Manufacturing Year
+- Registration Year
+
+Vehicle details:
+- Fuel
+- Transmission
+- KM
+- Owner count
+- Colour
+
+Commercial:
+- Purchase Price
+- Asking Price
+- Minimum Selling Price
+
+Status:
+- Available
+- On Hold
+- Test Drive
+- Reserved
+- Sold
+- Under Repair
+
+Other:
+- Purchase Date
+- Location
+- Insurance expiry
+- Notes
+- Photos
+
+24. CAR DETAIL SCREEN
+
+Show:
+- Car name
+- Asking price
+- KM
+- Fuel
+- Transmission
+- Owner count
+- Status
+- Stock age
+
+Actions:
+- View Interested Customers
+- Schedule Test Drive
+- Reserve
+
+Also show:
+- Interested Customers count
+- Test Drives count
+- Active Negotiations count
+
+25. INVENTORY AGE
+
+Buckets:
+- 0–30 days: Normal
+- 31–60 days: Attention
+- 61–90 days: High
+- 90+ days: Critical
+
+Dashboard metrics:
+- Cars > 60 Days
+- Cars > 90 Days
+
+26. TEST DRIVE MODULE
+
+Connect:
+Customer ↔ Vehicle ↔ Salesperson
+
+Fields:
+- Customer
+- Car
+- Date
+- Time
+- Salesperson
+- Location
+- Notes
+
+Status:
+- Scheduled
+- Completed
+- Cancelled
+- No Show
+- Rescheduled
+
+27. TEST DRIVE COMPLETION
+
+After completion ask:
+- Customer Interested
+- Needs Follow-up
+- Negotiating
+- Not Interested
+
+Also provide notes.
+
+28. TEST DRIVE CALENDAR
+
+Simple daily/list view:
+- Time
+- Customer
+- Car
+- Salesperson
+
+29. SALES PIPELINE
+
+Kanban columns:
+- New
+- Contacted
+- Interested
+- Test Drive
+- Negotiation
+- Booked
+- Won
+
+Cards should show:
+- Customer
+- Car
+- Budget
+- Assigned salesperson
+- Next follow-up
+
+30. NEGOTIATION
+
+Store:
+- Vehicle Asking Price
+- Customer Offer
+- Current Offer
+- Minimum Selling Price
+
+Minimum selling price should be visible only to Admin/Manager.
+
+31. BOOKING
+
+Capture:
+- Customer
+- Vehicle
+- Final negotiated price
+- Booking amount
+- Booking date
+- Payment mode
+- Expected delivery
+- Salesperson
+
+Vehicle status automatically becomes RESERVED.
+
+32. BOOKING RULE
+
+If a reserved vehicle is selected by another salesperson, show a warning with:
+- Customer
+- Booking amount
+- Salesperson
+
+33. PAYMENT TRACKING
+
+Keep basic:
+- Selling Price
+- Booking Received
+- Balance
+
+Payment status:
+- Pending
+- Part Paid
+- Paid
+
+34. DEAL COMPLETION
+
+When payment is completed:
+- Lead -> WON
+- Vehicle -> SOLD
+- Deal -> COMPLETED
+
+Record:
+- Sale Date
+- Selling Price
+- Salesperson
+- Customer
+- Vehicle
+
+This should happen through one action.
+
+35. LOST LEADS
+
+Require a lost reason:
+- Price Too High
+- Bought Elsewhere
+- Car Not Available
+- Finance Problem
+- No Response
+- Purchase Postponed
+- Requirement Changed
+- Not Interested
+- Other
+
+Optional short note.
+
+36. IF A CAR GETS SOLD
+
+If several active customers were interested in the sold vehicle:
+- Show number of active customers
+- Provide “Find Similar Cars” action
+
+37. CUSTOMER MODULE
+
+Separate Customer from Lead.
+
+Customer = person.
+Lead = sales opportunity.
+
+The same customer can create a future lead without being duplicated.
+
+38. CUSTOMER PROFILE
+
+Show:
+- Contact Information
+- Previous Leads
+- Interested Cars
+- Test Drives
+- Purchases
+- Follow-up History
+- Activity Timeline
+
+39. EMPLOYEE MANAGEMENT
+
+Roles:
+- Admin
+- Manager
+- Sales Executive
+
+Keep permissions simple in Version 1.
+
+40. LEAD ASSIGNMENT
+
+Managers should be able to assign and reassign leads.
+
+Activity timeline should record reassignments.
+
+41. DASHBOARD
+
+Top cards:
+- New Leads Today
+- Follow-ups Today
+- Overdue Follow-ups
+- Test Drives Today
+- Bookings This Month
+- Cars Sold This Month
+- Available Cars
+- 90+ Day Stock
+
+42. SALESPERSON DASHBOARD
+
+Focus on work:
+- My New Leads
+- Follow-ups Today
+- Overdue Follow-ups
+- Test Drives Today
+- Negotiations
+- Bookings
+
+Also show Today’s Work list.
+
+43. MANAGER DASHBOARD
+
+Show:
+- Leads Today
+- Contacted Leads
+- Pending Follow-ups
+- Overdue
+- Test Drives
+- Bookings
+- Sales
+- Conversion
+
+Also:
+- Salesperson Performance
+- Lead Sources
+- Pipeline
+- Inventory Age
+
+44. REPORTS
+
+Start with six:
+1. Lead Funnel
+2. Salesperson Performance
+3. Lead Source
+4. Lost Lead Reasons
+5. Inventory Age
+6. Sales
+
+45. SEARCH
+
+Global search:
+- Customer Name
+- Phone
+- Registration Number
+- Stock ID
+- Brand
+- Model
+- Lead ID
+
+46. NOTIFICATIONS
+
+In-app notifications:
+- New Lead Assigned
+- Follow-up Due
+- Overdue Follow-up
+- Test Drive Today
+- Vehicle Reserved
+- Booking Created
+
+47. DATA MODEL
+
+Recommended tables:
+- users
+- customers
+- leads
+- vehicles
+- lead_vehicle_interests
+- followups
+- test_drives
+- deals
+- payments
+- activities
+- vehicle_images
+
+48. CUSTOMERS TABLE
+
+Fields:
+- id
+- name
+- phone
+- alternate_phone
+- email
+- city
+- address
+- created_at
+- updated_at
+
+Index phone for duplicate detection.
+
+49. LEADS TABLE
+
+Fields:
+- id
+- customer_id
+- source
+- assigned_to
+- status
+- priority
+- budget_min
+- budget_max
+- preferred_brand
+- preferred_model
+- preferred_fuel
+- preferred_transmission
+- preferred_body_type
+- buying_timeline
+- next_followup_at
+- lost_reason
+- lost_note
+- created_at
+- updated_at
+- closed_at
+
+50. VEHICLES TABLE
+
+Fields:
+- id
+- stock_id
+- registration_number
+- brand
+- model
+- variant
+- manufacturing_year
+- registration_year
+- fuel
+- transmission
+- km_driven
+- owners
+- colour
+- purchase_price
+- asking_price
+- minimum_price
+- purchase_date
+- status
+- location
+- insurance_expiry
+- created_at
+- updated_at
+- sold_at
+
+51. LEAD VEHICLE INTEREST TABLE
+
+Fields:
+- id
+- lead_id
+- vehicle_id
+- interest_level
+- created_at
+
+52. FOLLOW-UPS TABLE
+
+Fields:
+- id
+- lead_id
+- assigned_to
+- scheduled_at
+- type
+- notes
+- status
+- completed_at
+- created_at
+
+53. TEST DRIVES TABLE
+
+Fields:
+- id
+- lead_id
+- vehicle_id
+- salesperson_id
+- scheduled_at
+- location
+- status
+- result
+- notes
+- created_at
+
+54. DEALS TABLE
+
+Fields:
+- id
+- lead_id
+- customer_id
+- vehicle_id
+- salesperson_id
+- asking_price
+- final_price
+- booking_amount
+- deal_status
+- booking_date
+- delivery_date
+- sale_date
+- created_at
+
+55. ACTIVITY TABLE
+
+Fields:
+- id
+- lead_id
+- user_id
+- activity_type
+- description
+- created_at
+
+Activity types:
+- lead_created
+- lead_assigned
+- call_logged
+- whatsapp
+- followup_created
+- followup_completed
+- vehicle_interested
+- test_drive_created
+- stage_changed
+- booking_created
+- vehicle_sold
+- lead_lost
+
+56. IMPORTANT AUTOMATION RULES
+
+Rule 1:
+New lead -> Status = New
+
+Rule 2:
+Customer contacted -> Status = Contacted
+
+Rule 3:
+Test drive scheduled -> Lead = Test Drive
+
+Rule 4:
+Negotiation entered -> Lead = Negotiation
+
+Rule 5:
+Booking received -> Lead = Booked, Vehicle = Reserved
+
+Rule 6:
+Deal completed -> Lead = Won, Vehicle = Sold, Deal = Completed
+
+Rule 7:
+Lead marked Lost -> Require lost reason
+
+Rule 8:
+Completed follow-up -> Ask for next action
+
+Rule 9:
+Duplicate phone -> Open existing customer
+
+57. UI RECOMMENDATION FOR CURRENT SCREEN
+
+Keep the dark theme and existing sidebar.
+
+Recommended Leads page:
+
+LEAD MANAGEMENT
+
+[+ Add Lead]
+
+[Search customer / phone...]
+
+All | My Leads | New | Today | Overdue | Hot | Test Drive
+
+Customer | Car | Owner | Stage | Follow-up | Age
+
+Rahul | Creta | Amit | Interested | Today 4 PM | 2d
+Rohit | Swift | Raj | Test Drive | Tomorrow | 4d
+Suman | Nexon | Amit | Negotiation | Today 6 PM | 1d
+
+Move full Add Lead form to drawer/modal.
+
+58. ADD LEAD DRAWER
+
+Fields:
+- Customer Name *
+- Phone *
+- Interested Car
+- Budget
+- Lead Source *
+- Assigned To *
+- Buying Timeline
+- Priority
+- Notes
+
+Buttons:
+- Create Lead
+- Open Lead
+- Schedule Follow-up
+
+59. LEAD DETAIL UX
+
+Suggested layout:
+
+Left:
+- Customer information
+
+Centre:
+- Sales journey:
+  New -> Contacted -> Interested -> Test Drive -> Negotiation -> Booked
+
+Right:
+- Next action
+- Follow-up details
+- Complete / Reschedule
+
+Below:
+- Interested Cars
+- Activity Timeline
+
+60. MOBILE EXPERIENCE
+
+Prioritize:
+- Call
+- WhatsApp
+- Add Note
+- Follow-up
+- Lead Status
+- Test Drive
+
+Salesperson should be able to update a lead in 15–30 seconds.
+
+61. FEATURES NOT TO BUILD YET
+
+Do not build now:
+- AI chatbot
+- AI lead scoring
+- Call recording
+- WhatsApp API automation
+- Instagram integration
+- Facebook automated ingestion
+- Full accounting
+- GST accounting
+- RTO workflow
+- Insurance management
+- Loan management
+- Vehicle procurement marketplace
+- Marketing automation
+- Customer app
+- Native mobile app
+- Complex multi-branch permissions
+
+62. DEVELOPMENT PRIORITY
+
+PHASE 1 – Make CRM Operational
+1. Lead improvement
+2. Customer requirement
+3. Lead detail page
+4. Lead assignment
+5. Follow-ups
+6. Activity timeline
+7. Inventory linking
+8. Duplicate phone detection
+
+PHASE 2 – Make CRM Sell Cars
+1. Test drives
+2. Pipeline
+3. Negotiation
+4. Booking
+5. Deal completion
+6. Lost reasons
+7. Vehicle auto-status updates
+
+PHASE 3 – Management
+1. Manager dashboard
+2. Employee performance
+3. Lead source reports
+4. Conversion funnel
+5. Inventory ageing
+6. Overdue follow-up report
+
+63. MOST IMPORTANT WORKFLOW RULE
+
+No active customer should exist in Motorwise without a clear next action.
+
+Examples:
+- Call tomorrow
+- Send car photos
+- Customer visit
+- Test drive
+- Negotiate
+- Book
+- Close lost
+
+64. DEFINITION OF A FULLY WORKABLE CRM
+
+Example end-to-end scenario:
+
+Facebook customer calls dealership
+↓
+Sales executive creates Rahul
+↓
+Phone number checked for duplicate
+↓
+Rahul wants automatic SUV, budget ₹10L
+↓
+CRM finds Creta and Seltos
+↓
+Executive links Creta to Rahul
+↓
+Follow-up scheduled tomorrow
+↓
+Rahul visits showroom
+↓
+Test drive created
+↓
+Test drive completed
+↓
+Rahul offers ₹9L
+↓
+Negotiation recorded
+↓
+Manager approves ₹9.20L
+↓
+Customer pays ₹25,000 booking
+↓
+Creta automatically becomes RESERVED
+↓
+Remaining payment received
+↓
+Deal marked completed
+↓
+Vehicle automatically becomes SOLD
+↓
+Lead automatically becomes WON
+↓
+Sale appears on manager dashboard
+↓
+All actions remain visible in customer timeline
+
+RECOMMENDED IMMEDIATE REDESIGN
+
+Do not rebuild the UI from scratch. Keep the dark design and existing sidebar.
+
+Next development sprint:
+1. Replace quick lead form with a proper Add Lead drawer
+2. Add Interested Car + Budget + Assigned Salesperson + Buying Timeline
+3. Create a proper Lead Detail page
+4. Add Follow-up date/time and overdue management
+5. Link Leads ↔ Inventory
+6. Add Call + WhatsApp + Test Drive quick actions
+7. Add automatic activity history and stage transitions
+
+Once these seven are working properly, Motorwise will already feel much closer to an industry-level second-hand car CRM while remaining simple for dealership staff to use every day.
