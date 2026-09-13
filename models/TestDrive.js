@@ -3,27 +3,47 @@ const mongoose = require('mongoose');
 const testDriveSchema = new mongoose.Schema({
   lead_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Lead', 
-    required: true,
-    index: true 
+    ref: 'Lead' 
   },
   customer_id: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Customer' 
   },
+  customer_name: { 
+    type: String, 
+    default: '' 
+  },
+  customer_phone: { 
+    type: String, 
+    default: '' 
+  },
   vehicle_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Vehicle', 
-    required: true 
+    ref: 'Vehicle' 
+  },
+  car_name: { 
+    type: String, 
+    default: '' 
   },
   employee_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
-    required: true 
+    ref: 'User' 
+  },
+  employee_name: { 
+    type: String, 
+    default: 'Sales Executive' 
+  },
+  date: { 
+    type: Date, 
+    default: Date.now 
+  },
+  time: { 
+    type: String, 
+    default: '11:30 AM' 
   },
   scheduled_at: { 
     type: Date, 
-    required: true,
+    default: Date.now,
     index: true 
   },
   location: { 
@@ -32,28 +52,17 @@ const testDriveSchema = new mongoose.Schema({
   },
   status: { 
     type: String, 
-    enum: ['scheduled', 'completed', 'cancelled'], 
-    default: 'scheduled' 
-  },
-  customer_feedback: { 
-    type: String,
-    default: '' 
+    default: 'Scheduled',
+    index: true 
   },
   notes: { 
-    type: String,
+    type: String, 
     default: '' 
-  },
-  completed_at: { 
-    type: Date 
   }
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
-});
-
-testDriveSchema.virtual('employee_name').get(function() {
-  return this.employee_id?.name || 'Sales Executive';
 });
 
 module.exports = mongoose.model('TestDrive', testDriveSchema);

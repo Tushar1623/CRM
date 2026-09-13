@@ -3,49 +3,50 @@ const mongoose = require('mongoose');
 const followUpSchema = new mongoose.Schema({
   lead_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Lead', 
-    required: true,
-    index: true 
+    ref: 'Lead' 
   },
   customer_id: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Customer' 
   },
+  customer_name: { 
+    type: String, 
+    default: '' 
+  },
+  customer_phone: { 
+    type: String, 
+    default: '' 
+  },
   assigned_to: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
-    required: true 
+    ref: 'User' 
+  },
+  assigned_to_name: { 
+    type: String, 
+    default: 'Amit Sharma' 
   },
   scheduled_at: { 
     type: Date, 
-    required: true,
+    default: Date.now,
     index: true 
   },
   type: { 
     type: String, 
-    enum: ['call', 'whatsapp', 'showroom_visit', 'meeting', 'other'], 
-    default: 'call' 
+    default: 'Call' 
   },
   status: { 
     type: String, 
-    enum: ['pending', 'completed', 'missed'], 
-    default: 'pending' 
+    default: 'Pending',
+    index: true 
   },
   notes: { 
-    type: String,
+    type: String, 
     default: '' 
-  },
-  completed_at: { 
-    type: Date 
   }
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
-});
-
-followUpSchema.virtual('assigned_to_name').get(function() {
-  return this.assigned_to?.name || 'Sales Executive';
 });
 
 module.exports = mongoose.model('FollowUp', followUpSchema);

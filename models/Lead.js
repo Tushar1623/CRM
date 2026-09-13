@@ -6,23 +6,36 @@ const leadSchema = new mongoose.Schema({
     required: true, 
     unique: true, 
     uppercase: true,
+    trim: true,
     index: true 
   },
   customer_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Customer', 
-    required: true,
-    index: true 
+    ref: 'Customer' 
+  },
+  customer_name: { 
+    type: String, 
+    default: '' 
+  },
+  customer_phone: { 
+    type: String, 
+    default: '' 
+  },
+  customer_email: { 
+    type: String, 
+    default: '' 
   },
   assigned_to: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
-    required: true,
-    index: true 
+    ref: 'User' 
+  },
+  assigned_to_name: { 
+    type: String, 
+    default: 'Amit Sharma' 
   },
   interested_car: { 
     type: String, 
-    required: true, 
+    default: 'Open Requirement', 
     trim: true 
   },
   budget_max: { 
@@ -31,40 +44,29 @@ const leadSchema = new mongoose.Schema({
   },
   source: { 
     type: String, 
-    default: 'walk_in' 
+    default: 'Walk-in' 
   },
   priority: { 
     type: String, 
-    enum: ['hot', 'warm', 'cold'], 
-    default: 'warm' 
+    default: 'Warm' 
   },
   status: { 
     type: String, 
-    enum: [
-      'new', 'contacted', 'interested', 'follow_up', 
-      'test_drive', 'negotiation', 'booked', 'won', 'lost'
-    ], 
-    default: 'new',
+    default: 'New Lead',
     index: true 
   },
-  lost_reason: { 
-    type: String 
+  buying_timeline: { 
+    type: String, 
+    default: 'Within 30 Days' 
   },
   notes: { 
-    type: String,
+    type: String, 
     default: '' 
-  },
-  closed_at: { 
-    type: Date 
   }
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
-});
-
-leadSchema.virtual('assigned_to_name').get(function() {
-  return this.assigned_to?.name || 'Sales Executive';
 });
 
 module.exports = mongoose.model('Lead', leadSchema);

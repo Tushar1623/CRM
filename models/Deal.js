@@ -3,53 +3,60 @@ const mongoose = require('mongoose');
 const dealSchema = new mongoose.Schema({
   deal_number: { 
     type: String, 
-    required: true, 
+    required: true,
     unique: true, 
     uppercase: true,
+    trim: true,
     index: true 
   },
   lead_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Lead', 
-    required: true,
-    index: true 
+    ref: 'Lead' 
   },
   customer_id: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Customer' 
   },
+  customer_name: { 
+    type: String, 
+    default: '' 
+  },
+  customer_phone: { 
+    type: String, 
+    default: '' 
+  },
   vehicle_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Vehicle', 
-    required: true 
+    ref: 'Vehicle' 
+  },
+  car_name: { 
+    type: String, 
+    default: '' 
   },
   salesperson_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
-    required: true 
+    ref: 'User' 
   },
-  final_selling_price: { 
+  salesperson_name: { 
+    type: String, 
+    default: 'Amit Sharma' 
+  },
+  selling_price: { 
     type: Number, 
     required: true, 
     min: 0 
   },
   booking_amount: { 
     type: Number, 
-    default: 0 
-  },
-  amount_received: { 
-    type: Number, 
-    default: 0 
+    default: 25000 
   },
   payment_status: { 
     type: String, 
-    enum: ['pending', 'partial', 'paid'], 
-    default: 'pending' 
+    default: 'Pending' 
   },
-  status: { 
+  deal_status: { 
     type: String, 
-    enum: ['booked', 'delivered', 'cancelled'], 
-    default: 'booked',
+    default: 'Booked',
     index: true 
   },
   booking_date: { 
@@ -60,7 +67,7 @@ const dealSchema = new mongoose.Schema({
     type: Date 
   },
   notes: { 
-    type: String,
+    type: String, 
     default: '' 
   }
 }, { 
@@ -69,16 +76,13 @@ const dealSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-dealSchema.virtual('balance').get(function() {
-  return (this.final_selling_price || 0) - (this.amount_received || this.booking_amount || 0);
-});
+// Alias virtual for status
+dealSchema.virtual('status')
+  .get(function() { return this.deal_status; })
+  .set(function(v) { this.deal_status = v; });
 
-dealSchema.virtual('selling_price')
-  .get(function() { return this.final_selling_price; })
-  .set(function(v) { this.final_selling_price = v; });
-
-dealSchema.virtual('deal_status')
-  .get(function() { return this.status; })
-  .set(function(v) { this.status = v; });
+dealSchema.virtual('final_selling_price')
+  .get(function() { return this.selling_price; })
+  .set(function(v) { this.selling_price = v; });
 
 module.exports = mongoose.model('Deal', dealSchema);

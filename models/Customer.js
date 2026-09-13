@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const { normalizePhone } = require('../utils/normalizePhone');
 
 const customerSchema = new mongoose.Schema({
   name: { 
@@ -10,14 +9,14 @@ const customerSchema = new mongoose.Schema({
   phone: { 
     type: String, 
     required: true, 
-    unique: true, 
     trim: true,
     index: true 
   },
   email: { 
     type: String, 
     trim: true, 
-    lowercase: true 
+    lowercase: true,
+    default: '' 
   },
   city: { 
     type: String, 
@@ -31,20 +30,12 @@ const customerSchema = new mongoose.Schema({
   },
   status: { 
     type: String, 
-    enum: ['active', 'blacklisted'], 
     default: 'active' 
   }
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
-});
-
-customerSchema.pre('save', function(next) {
-  if (this.phone) {
-    this.phone = normalizePhone(this.phone);
-  }
-  next();
 });
 
 module.exports = mongoose.model('Customer', customerSchema);

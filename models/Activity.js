@@ -10,33 +10,29 @@ const activitySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Customer' 
   },
-  user_id: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User' 
-  },
   activity_type: { 
     type: String, 
-    required: true,
+    default: 'activity',
     index: true 
   },
   title: { 
     type: String, 
-    required: true,
+    required: true, 
     trim: true 
   },
   description: { 
     type: String, 
-    required: true,
+    default: '', 
     trim: true 
+  },
+  user: { 
+    type: String, 
+    default: 'System' 
   }
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
-});
-
-activitySchema.virtual('user_name').get(function() {
-  return this.user_id?.name || 'System';
 });
 
 module.exports = mongoose.model('Activity', activitySchema);
