@@ -1,0 +1,1008 @@
+Motorwise CRM — Codebase Simplification & Cleanup Plan
+Document Version: 1.0
+Repository: Tushar1623/CRM
+Goal: Make the CRM faster, easier to understand for beginners, and maintainable with minimal code, files, and folders.
+
+==================================================
+1. OBJECTIVE
+==================================================
+
+The current Motorwise CRM already has the important business modules, but the repository contains:
+
+- Duplicate functionality
+- Old prototype files
+- Two database approaches
+- In-memory data handling
+- Legacy seed scripts
+- Vite template files
+- Repeated frontend fetch logic
+- Hard-coded demo users
+- Repeated customer/vehicle creation flows
+
+The goal is to simplify the system without removing important dealership functionality.
+
+Recommended principle:
+
+One database
+One backend
+One API helper
+One stylesheet
+One place for each workflow
+
+==================================================
+2. FINAL CORE MODULES TO KEEP
+==================================================
+
+Keep these modules:
+
+1. Dashboard
+2. Leads
+3. Lead Detail
+4. Follow-ups
+5. Test Drives
+6. Inventory
+7. Deals
+
+Optional later:
+8. Customers
+9. Reports
+
+Recommended navigation:
+
+Dashboard
+
+Leads
+  - List View
+  - Pipeline View
+
+Follow-ups
+
+Test Drives
+
+Inventory
+
+Deals
+
+==================================================
+3. MODULES TO REMOVE OR MERGE
+==================================================
+
+Customers Page:
+REMOVE for MVP.
+
+Reason:
+Customer records already exist in the database and can be created automatically when a lead is created.
+
+Customer details should be visible inside Lead Detail.
+
+Pipeline Page:
+MERGE into Leads.
+
+Instead of separate Pipeline.jsx, add:
+
+[List] [Board]
+
+inside Leads.jsx.
+
+Reports Page:
+REMOVE for now.
+
+Move essential statistics to Dashboard:
+
+- Leads
+- Test drives
+- Bookings
+- Cars sold
+- Revenue
+- Conversion
+
+==================================================
+4. FILES / FOLDERS TO REMOVE
+==================================================
+
+Recommended cleanup:
+
+DELETE:
+
+database/
+  README.md
+  schema.sql
+
+Reason:
+These PostgreSQL/Supabase files conflict with the active MongoDB architecture.
+
+DELETE:
+
+seed.js
+
+Reason:
+This is from an older generic CRM and imports old Company/Contact models.
+
+DELETE:
+
+clear_db.js
+
+Reason:
+Dangerous production utility and unnecessary for normal CRM operation.
+
+DELETE OR MOVE OUT OF PRODUCTION:
+
+seed_automotive.js
+
+Keep only if you intentionally need demo data.
+
+DELETE:
+
+test_api.js
+
+Reason:
+Old standalone API test script.
+
+DELETE:
+
+client/src/App.css
+
+Reason:
+Unused Vite/template CSS.
+
+DELETE:
+
+client/README.md
+
+Reason:
+Default Vite documentation.
+
+DELETE:
+
+client/.gitignore
+
+Reason:
+Root .gitignore already covers the client.
+
+DELETE:
+
+client/src/assets/react.svg
+client/src/assets/vite.svg
+
+Reason:
+Unused Vite template assets.
+
+DELETE IF UNUSED:
+
+client/src/assets/hero.png
+client/public/icons.svg
+
+==================================================
+5. DATABASE ARCHITECTURE
+==================================================
+
+Use only:
+
+React / Vite
+      ↓
+Express
+      ↓
+Mongoose
+      ↓
+MongoDB Atlas
+
+Remove PostgreSQL/Supabase database architecture from the active project.
+
+Do not mix databases.
+
+==================================================
+6. REMOVE IN-MEMORY DATABASE
+==================================================
+
+Current backend uses in-memory objects such as:
+
+mem.users
+mem.customers
+mem.vehicles
+mem.leads
+mem.followups
+mem.testDrives
+mem.deals
+mem.activities
+
+These must be removed from production code.
+
+Remove code patterns like:
+
+mem.customers.push(...)
+mem.leads.unshift(...)
+mem.vehicles.unshift(...)
+mem.deals.unshift(...)
+
+Use Mongoose directly:
+
+Customer.create(...)
+Lead.create(...)
+Vehicle.create(...)
+Deal.create(...)
+
+Reads should use:
+
+Lead.find()
+Vehicle.find()
+Customer.find()
+
+Updates should use:
+
+findByIdAndUpdate()
+
+Deletes should use:
+
+findByIdAndDelete()
+
+==================================================
+7. REMOVE DATABASE FALLBACK MODE
+==================================================
+
+Do not silently switch to in-memory storage if MongoDB fails.
+
+If MongoDB is unavailable, return:
+
+503 Service Unavailable
+
+Example:
+
+{
+  "error": "Database temporarily unavailable"
+}
+
+Use memory storage only for tests or demos, never production.
+
+==================================================
+8. REMOVE CLEAR-DATA API
+==================================================
+
+Remove:
+
+POST /api/clear-data
+
+Do not expose a route that can wipe:
+
+- Customers
+- Vehicles
+- Leads
+- Test Drives
+- Deals
+- Activities
+- Follow-ups
+
+If needed for development, keep a local script only.
+
+==================================================
+9. SIMPLIFY AUTHENTICATION
+==================================================
+
+Current logic should be simplified to:
+
+Login
+ ↓
+User.findOne(email)
+ ↓
+bcrypt.compare(password)
+ ↓
+JWT
+ ↓
+Return user + token
+
+Remove:
+
+- Memory-user fallback
+- Hard-coded admin fallback
+- Demo password fallback
+- Multiple login sources
+
+Keep:
+
+MongoDB User
+bcrypt
+JWT
+
+==================================================
+10. REMOVE PUBLIC REGISTER ROUTE
+==================================================
+
+Remove:
+
+POST /api/auth/register
+
+For an internal dealership CRM, employees do not need self-registration.
+
+Admin can create employees later.
+
+==================================================
+11. CREATE ADMIN SCRIPT
+==================================================
+
+Keep create_admin.js temporarily.
+
+Better setup:
+
+npm run create-admin
+
+Admin credentials should come from environment variables.
+
+Do not hard-code:
+
+admin@motorwise.com
+password123
+
+inside production code.
+
+==================================================
+12. SIMPLIFY CUSTOMERS
+==================================================
+
+Do not need a separate Customers page for MVP.
+
+Lead creation should:
+
+1. Normalize phone
+2. Search existing customer
+3. Reuse existing customer if found
+4. Create customer if not found
+5. Create lead
+
+Customer information is then visible inside Lead Detail.
+
+Keep Customer model.
+Remove Customers.jsx UI for now.
+
+==================================================
+13. MERGE PIPELINE INTO LEADS
+==================================================
+
+Current separate Pipeline page duplicates lead fetching and status update logic.
+
+Recommended:
+
+Leads page:
+
+[List] [Board]
+
+List:
+
+Rahul | Creta | Hot | Interested
+Rohan | Swift | Warm | Test Drive
+
+Board:
+
+NEW
+INTERESTED
+TEST DRIVE
+NEGOTIATION
+BOOKED
+WON
+
+Then delete:
+
+Pipeline.jsx
+
+==================================================
+14. REMOVE REPORTS PAGE FOR MVP
+==================================================
+
+Current Reports page mostly repeats data already available from:
+
+/api/stats
+/api/deals
+
+Also contains hard-coded employee examples.
+
+Move basic reporting to Dashboard.
+
+Then delete:
+
+Reports.jsx
+
+Rebuild Reports later when real dealership data grows.
+
+==================================================
+15. FINAL FRONTEND PAGES
+==================================================
+
+Recommended pages:
+
+pages/
+
+Login.jsx
+Dashboard.jsx
+Leads.jsx
+LeadDetail.jsx
+Followups.jsx
+TestDrives.jsx
+Inventory.jsx
+Deals.jsx
+
+Only 8 main pages.
+
+==================================================
+16. REMOVE THEME SWITCHING
+==================================================
+
+For now, keep one theme only.
+
+Recommended:
+Dark Motorwise theme.
+
+Remove:
+
+- Theme toggle button
+- Light theme CSS
+- Sun/Moon icons
+- localStorage crm_theme
+- toggleTheme()
+- theme state
+
+This reduces state and styling complexity.
+
+==================================================
+17. REMOVE crm-data-updated EVENT SYSTEM
+==================================================
+
+Current frontend frequently uses:
+
+window.dispatchEvent(new Event('crm-data-updated'))
+
+and:
+
+window.addEventListener('crm-data-updated', ...)
+
+This is unnecessary for a small app.
+
+Simplify to:
+
+await save()
+await reloadCurrentPageData()
+
+When navigating to another page, that page fetches fresh data normally.
+
+Remove:
+
+notifyDataUpdated()
+crm-data-updated listeners
+crm-data-updated dispatches
+
+==================================================
+18. KEEP TOASTS
+==================================================
+
+Keep the toast notification system because it improves UX.
+
+Examples:
+
+Lead created successfully
+Vehicle updated
+Follow-up completed
+Deal created
+
+No need for a new library.
+
+==================================================
+19. CREATE ONE API HELPER
+==================================================
+
+Add one file:
+
+client/src/api.js
+
+Purpose:
+Remove repeated fetch code from every page.
+
+Recommended:
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+export async function api(path, options = {}) {
+  const token = localStorage.getItem('token');
+
+  const res = await fetch(`${API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers
+    }
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Request failed');
+  }
+
+  return res.json();
+}
+
+Then:
+
+const leads = await api('/api/leads');
+
+instead of repeating:
+
+fetch('http://localhost:3000/api/leads')
+
+throughout the app.
+
+==================================================
+20. FIX JWT USAGE
+==================================================
+
+Current frontend stores JWT, but normal API requests should send it.
+
+All protected requests should include:
+
+Authorization: Bearer TOKEN
+
+Using the api.js helper solves this.
+
+==================================================
+21. DO NOT OVER-ENGINEER BACKEND
+==================================================
+
+For this small CRM, do not create too many layers like:
+
+controllers/
+services/
+repositories/
+DTO/
+validators/
+use-cases/
+
+That is unnecessary for now.
+
+For a beginner, prefer:
+
+Route
+ ↓
+Model
+
+Example:
+
+app.get('/api/leads', auth, async (req, res) => {
+  const leads = await Lead.find()
+    .populate('customer_id')
+    .populate('assigned_to');
+
+  res.json(leads);
+});
+
+==================================================
+22. FINAL RECOMMENDED PROJECT STRUCTURE
+==================================================
+
+CRM/
+│
+├── server.js
+├── package.json
+├── package-lock.json
+├── .env
+├── .env.example
+├── .gitignore
+├── README.md
+├── create_admin.js
+│
+├── models/
+│   ├── User.js
+│   ├── Customer.js
+│   ├── Lead.js
+│   ├── Vehicle.js
+│   ├── FollowUp.js
+│   ├── TestDrive.js
+│   ├── Deal.js
+│   └── Activity.js
+│
+└── client/
+    │
+    ├── index.html
+    ├── package.json
+    ├── package-lock.json
+    ├── vite.config.js
+    │
+    └── src/
+        ├── main.jsx
+        ├── App.jsx
+        ├── api.js
+        ├── AuthContext.jsx
+        ├── styles.css
+        │
+        ├── components/
+        │   └── AddLeadModal.jsx
+        │
+        └── pages/
+            ├── Login.jsx
+            ├── Dashboard.jsx
+            ├── Leads.jsx
+            ├── LeadDetail.jsx
+            ├── Followups.jsx
+            ├── TestDrives.jsx
+            ├── Inventory.jsx
+            └── Deals.jsx
+
+==================================================
+23. BACKEND FILE ORDER
+==================================================
+
+Keep backend simple.
+
+server.js should be organized like:
+
+1. Imports
+2. Express setup
+3. MongoDB connection
+4. Authentication middleware
+5. Auth routes
+6. Dashboard routes
+7. Lead routes
+8. Follow-up routes
+9. Test-drive routes
+10. Inventory routes
+11. Deal routes
+12. Search route
+13. Error handler
+14. app.listen()
+
+Use large comments between sections.
+
+==================================================
+24. REMOVE FAKE DEFAULT DATA
+==================================================
+
+Do not automatically fill missing vehicle data with fake values.
+
+Bad examples:
+
+Hyundai
+Car
+2022
+30000 KM
+₹500000
+
+If required fields are missing, return:
+
+400 Bad Request
+
+Example:
+
+if (!brand || !model || !asking_price) {
+  return res.status(400).json({
+    error: 'Brand, model and asking price are required'
+  });
+}
+
+==================================================
+25. DO NOT AUTO-CREATE FAKE VEHICLES
+==================================================
+
+Current Test Drive and Deal logic may create a vehicle when the car name is not found.
+
+Remove this.
+
+Test Drive must require:
+
+vehicle_id
+
+Deal must require:
+
+vehicle_id
+
+Only actual inventory vehicles can be selected.
+
+==================================================
+26. DO NOT DEFAULT TO FIRST VEHICLE
+==================================================
+
+Remove any fallback like:
+
+vehicles[0]
+
+or:
+
+mem.vehicles[0]
+
+If vehicle is missing:
+
+return 400
+
+Example:
+
+{
+  "error": "Vehicle is required"
+}
+
+==================================================
+27. SIMPLIFY FOLLOW-UPS
+==================================================
+
+Follow-up should always belong to a Lead.
+
+Required:
+
+lead_id
+
+Customer comes automatically from:
+
+lead.customer_id
+
+Do not ask the user to select:
+
+Customer
+AND
+Lead
+
+at the same time.
+
+Recommended workflow:
+
+Lead Detail
+   ↓
+Schedule Follow-up
+
+==================================================
+28. SIMPLIFY TEST DRIVES
+==================================================
+
+Test Drive should come from a Lead.
+
+Required:
+
+lead_id
+vehicle_id
+scheduled_at
+
+Customer comes automatically from Lead.
+
+Remove:
+
+- Manual customer creation inside Test Drive
+- Manual vehicle name typing
+- Fallback vehicle creation
+
+Workflow:
+
+Lead
+ ↓
+Schedule Test Drive
+ ↓
+Choose Vehicle
+ ↓
+Choose Date/Time
+
+==================================================
+29. SIMPLIFY DEALS
+==================================================
+
+Deal should come from a Lead.
+
+Required:
+
+lead_id
+vehicle_id
+final_selling_price
+booking_amount
+status
+
+Customer and salesperson should come automatically from Lead.
+
+Remove:
+
+- Manual customer creation inside Deal
+- Manual vehicle creation inside Deal
+
+Workflow:
+
+Lead
+ ↓
+Vehicle
+ ↓
+Deal
+
+==================================================
+30. USE LEAD DETAIL AS MAIN WORKFLOW HUB
+==================================================
+
+Lead Detail should become the primary work screen.
+
+Example:
+
+Rahul Sharma
+9876543210
+
+[Call] [WhatsApp]
+
+Stage:
+Interested
+
+Vehicle:
+Hyundai Creta
+
+Next Follow-up:
+Tomorrow 11:00 AM
+
+[Schedule Follow-up]
+[Test Drive]
+[Create Booking]
+
+Activity:
+Lead Created
+Called Customer
+Test Drive Scheduled
+Booking Created
+
+==================================================
+31. KEEP DATABASE MODELS SEPARATE
+==================================================
+
+Keep these 8 model files:
+
+User
+Customer
+Lead
+Vehicle
+FollowUp
+TestDrive
+Deal
+Activity
+
+Do not combine all models into one file.
+
+Small model files are easier to understand.
+
+==================================================
+32. REMOVE DUPLICATED NAME FIELDS
+==================================================
+
+Avoid storing both:
+
+assigned_to
+assigned_to_name
+
+salesperson_id
+salesperson_name
+
+employee_id
+employee_name
+
+Store only ObjectId reference.
+
+Example:
+
+assigned_to: ObjectId
+
+Then use:
+
+.populate('assigned_to', 'name')
+
+This prevents outdated duplicate names.
+
+==================================================
+33. OPTIONAL FIELDS TO POSTPONE
+==================================================
+
+Remove or postpone for MVP:
+
+- Customer tags
+- Customer source
+- Finance status
+- Driving licence number
+- Advanced image UI
+- Theme selection
+- Employee leaderboard
+- Industry benchmark text
+- Custom customer creation in Test Drive
+- Custom vehicle creation in Deals
+
+==================================================
+34. FINAL API STYLE
+==================================================
+
+Frontend:
+
+api('/api/leads')
+
+instead of:
+
+fetch('http://localhost:3000/api/leads')
+
+Update example:
+
+api('/api/vehicles/123', {
+  method: 'PUT',
+  body: JSON.stringify(payload)
+})
+
+==================================================
+35. FINAL SYSTEM ARCHITECTURE
+==================================================
+
+Motorwise CRM:
+
+React
+  ↓
+Express
+  ↓
+Mongoose
+  ↓
+MongoDB Atlas
+
+Remove:
+
+PostgreSQL
+Supabase database schema
+In-memory data arrays
+Fake fallback records
+Multiple database structures
+
+==================================================
+36. CLEANUP ORDER
+==================================================
+
+Recommended sequence:
+
+1. Delete PostgreSQL database folder
+2. Delete seed.js
+3. Delete Vite template assets/files
+4. Remove in-memory database code
+5. Remove MongoDB fallback memory mode
+6. Fix authentication
+7. Protect APIs with JWT
+8. Add api.js frontend helper
+9. Remove theme switching
+10. Merge Pipeline into Leads
+11. Remove Customers page
+12. Remove Reports page
+13. Simplify Follow-up flow
+14. Simplify Test Drive flow
+15. Simplify Deal flow
+16. Remove hard-coded Amit/Raj user data
+17. Standardize database fields and enums
+18. Rewrite README
+
+==================================================
+37. TARGET RESULT
+==================================================
+
+Final project should have approximately:
+
+8 models
+8 pages
+1 component
+1 auth context
+1 API helper
+1 stylesheet
+1 App
+1 backend server
+
+The CRM remains fully functional while becoming much easier to understand.
+
+==================================================
+38. FINAL DEVELOPMENT PRINCIPLE
+==================================================
+
+For Motorwise:
+
+One database
+One backend file
+One API helper
+One stylesheet
+One place for each dealership workflow
+
+This will make the project:
+
+- Easier to debug
+- Easier to learn
+- Easier to maintain
+- Faster to modify
+- Less error-prone
+- More suitable for a beginner developer
+
+Do not optimize for enterprise architecture yet.
+
+Optimize for:
+Clarity
+Reliability
+Minimal code
+Real dealership workflow
