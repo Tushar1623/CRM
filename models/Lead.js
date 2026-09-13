@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const leadSchema = new mongoose.Schema({
+  business_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Business'
+  },
   lead_number: { 
     type: String, 
     required: true, 
@@ -33,6 +37,10 @@ const leadSchema = new mongoose.Schema({
     type: String, 
     default: 'Amit Sharma' 
   },
+  title: {
+    type: String,
+    default: ''
+  },
   interested_car: { 
     type: String, 
     default: 'Open Requirement', 
@@ -62,11 +70,25 @@ const leadSchema = new mongoose.Schema({
   notes: { 
     type: String, 
     default: '' 
+  },
+  custom_fields: { 
+    type: mongoose.Schema.Types.Mixed, 
+    default: {} 
   }
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
+});
+
+leadSchema.pre('save', function(next) {
+  if (this.interested_car && !this.title) {
+    this.title = this.interested_car;
+  }
+  if (this.title && !this.interested_car) {
+    this.interested_car = this.title;
+  }
+  next();
 });
 
 module.exports = mongoose.model('Lead', leadSchema);

@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const customerSchema = new mongoose.Schema({
+  business_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Business'
+  },
   name: { 
     type: String, 
     required: true, 
@@ -31,6 +35,10 @@ const customerSchema = new mongoose.Schema({
   status: { 
     type: String, 
     default: 'active' 
+  },
+  custom_fields: { 
+    type: mongoose.Schema.Types.Mixed, 
+    default: {} 
   }
 }, { 
   timestamps: true,

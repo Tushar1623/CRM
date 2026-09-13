@@ -1,23 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Receipt, CarFront, Plus } from 'lucide-react';
+import { Receipt, Plus } from 'lucide-react';
 import api from '../api';
+import { useBusiness } from '../context/BusinessContext';
 
 function Deals() {
+  const { labels } = useBusiness();
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [vehicles, setVehicles] = useState([]);
+  const [items, setItems] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
   // New Deal Form State
   const [customerId, setCustomerId] = useState('');
-  const [vehicleId, setVehicleId] = useState('');
+  const [itemId, setItemId] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
   const [bookingAmount, setBookingAmount] = useState('25000');
   const [dealStatus, setDealStatus] = useState('Booked');
   const [customCustomerName, setCustomCustomerName] = useState('');
   const [customCustomerPhone, setCustomCustomerPhone] = useState('');
-  const [customCarName, setCustomCarName] = useState('');
+  const [customItemName, setCustomItemName] = useState('');
 
   const fetchDeals = () => {
     setLoading(true);
@@ -34,13 +36,13 @@ function Deals() {
 
   useEffect(() => {
     fetchDeals();
-    api('/api/vehicles')
+    api('/api/items')
       .then(v => {
         if (Array.isArray(v)) {
-          setVehicles(v);
-          if (v.length > 0 && !vehicleId) {
-            setVehicleId(v[0]._id);
-            if (!sellingPrice) setSellingPrice(v[0].selling_price || v[0].asking_price || '');
+          setItems(v);
+          if (v.length > 0 && !itemId) {
+            setItemId(v[0]._id);
+            if (!sellingPrice) setSellingPrice(v[0].price || v[0].selling_price || '');
           }
         }
       })
@@ -56,11 +58,11 @@ function Deals() {
       .catch(console.error);
   }, []);
 
-  const handleVehicleChange = (vId) => {
-    setVehicleId(vId);
-    const chosen = vehicles.find(v => v._id === vId);
-    if (chosen && (chosen.selling_price || chosen.asking_price)) {
-      setSellingPrice(chosen.selling_price || chosen.asking_price);
+  const handleItemChange = (vId) => {
+    setItemId(vId);
+    const chosen = items.find(v => v._id === vId);
+    if (chosen && (chosen.price || chosen.selling_price)) {
+      setSellingPrice(chosen.price || chosen.selling_price);
     }
   };
 
@@ -68,10 +70,12 @@ function Deals() {
     e.preventDefault();
     const payload = {
       customer_id: customerId || (customers.length > 0 ? customers[0]._id : null),
-      vehicle_id: vehicleId || (vehicles.length > 0 ? vehicles[0]._id : null),
+      item_id: itemId || (items.length > 0 ? items[0]._id : null),
+      vehicle_id: itemId || (items.length > 0 ? items[0]._id : null),
       customer_name: customCustomerName,
       customer_phone: customCustomerPhone,
-      car_name: customCarName,
+      item_name: customItemName,
+      car_name: customItemName,
       selling_price: Number(sellingPrice),
       booking_amount: Number(bookingAmount),
       deal_status: dealStatus
@@ -82,9 +86,9 @@ function Deals() {
       setShowModal(false);
       setCustomCustomerName('');
       setCustomCustomerPhone('');
-      setCustomCarName('');
+      setCustomItemName('');
       fetchDeals();
-      window.dispatchEvent(new CustomEvent('crm-toast', { detail: `Deal ${deal.deal_number || ''} recorded successfully!` }));
+      window.dispatchEvent(new CustomEvent('crm-toast', { detail: `${labels.deal || 'Deal'} ${deal.deal_number || ''} recorded successfully!` }));
     } catch (err) {
       alert('Error creating deal: ' + err.message);
     }
@@ -94,62 +98,64 @@ function Deals() {
     try {
       await api.put(`/api/deals/${id}`, { deal_status: newStatus });
       fetchDeals();
-      window.dispatchEvent(new CustomEvent('crm-toast', { detail: `Deal status updated to ${newStatus}` }));
+      window.dispatchEvent(new CustomEvent('crm-toast', { detail: `Status updated to ${newStatus}` }));
     } catch (err) {
       alert('Error updating deal: ' + err.message);
     }
   };
 
-  const totalRevenue = deals.reduce((acc, d) => acc + (d.selling_price || d.final_selling_price || 0), 0);
+  const totalRevenue = deals.reduce((acc, d) => acc + (d.selling_price || 0), 0);
   const totalTokens = deals.reduce((acc, d) => acc + (d.booking_amount || 0), 0);
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: '0 0 0.25rem 0' }}>Sales & Deals</h2>
-          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>Track vehicle reservations, tokens received, and delivered cars.</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: '0 0 0.25rem 0' }}>{labels.deal || 'Deals & Bookings'}</h2>
+          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>
+            Track closed sales, advance deposits, and completed delivery contracts.
+          </p>
         </div>
         <button onClick={() => setShowModal(true)} className="premium-btn">
-          <Plus size={16} /> New Deal
+          <Plus size={16} /> New {labels.deal || 'Deal'}
         </button>
       </div>
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
         <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Total Deal Value</p>
+          <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Total Value</p>
           <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{(totalRevenue / 100000).toFixed(2)}L</h3>
-          <small style={{ color: 'var(--text-secondary)' }}>from all active and closed deals</small>
+          <small style={{ color: 'var(--text-secondary)' }}>from all active & closed deals</small>
         </div>
         <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Booking Tokens Held</p>
+          <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Advance Deposits</p>
           <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700', color: '#10b981' }}>₹{totalTokens.toLocaleString()}</h3>
-          <small style={{ color: 'var(--text-secondary)' }}>advance booking deposits</small>
+          <small style={{ color: 'var(--text-secondary)' }}>tokens & advance held</small>
         </div>
         <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Cars Delivered</p>
+          <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Completed</p>
           <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700', color: 'var(--accent-primary)' }}>
-            {deals.filter(d => (d.status || d.deal_status || '').toLowerCase() === 'delivered').length}
+            {deals.filter(d => ['delivered', 'won', 'completed'].includes((d.status || d.deal_status || '').toLowerCase())).length}
           </h3>
-          <small style={{ color: 'var(--text-secondary)' }}>completed customer deliveries</small>
+          <small style={{ color: 'var(--text-secondary)' }}>closed sales contracts</small>
         </div>
       </div>
 
       <div className="glass-panel" style={{ overflow: 'hidden' }}>
         {loading ? (
-          <p style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading deals...</p>
+          <p style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading {labels.deal?.toLowerCase() || 'deals'}...</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table className="premium-table">
               <thead>
                 <tr>
-                  <th>Vehicle</th>
-                  <th>Customer</th>
-                  <th>Selling Price</th>
-                  <th>Booking Token</th>
-                  <th>Payment Status</th>
-                  <th>Deal Stage</th>
+                  <th>{labels.item || 'Item'}</th>
+                  <th>{labels.customer || 'Customer'}</th>
+                  <th>Total Value</th>
+                  <th>Deposit / Token</th>
+                  <th>Payment</th>
+                  <th>Stage</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
@@ -157,22 +163,15 @@ function Deals() {
                 {deals.map(d => (
                   <tr key={d._id}>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
-                          <CarFront size={18} />
-                        </div>
-                        <div>
-                          <strong style={{ fontSize: '0.95rem' }}>{d.vehicle_id?.brand} {d.vehicle_id?.model || d.car_name}</strong>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{d.vehicle_id?.stock_id || 'STK'}</div>
-                        </div>
-                      </div>
+                      <strong style={{ fontSize: '0.95rem' }}>{d.item_id?.name || `${d.item_id?.brand || ''} ${d.item_id?.model || ''}` || d.car_name || d.item_name}</strong>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{d.item_id?.code || d.item_id?.stock_id || 'ID'}</div>
                     </td>
                     <td>
-                      <strong style={{ fontSize: '0.9rem' }}>{d.customer_id?.name || d.customer_name || 'Customer'}</strong>
+                      <strong style={{ fontSize: '0.9rem' }}>{d.customer_id?.name || d.customer_name || 'Client'}</strong>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{d.customer_id?.phone || d.customer_phone}</div>
                     </td>
                     <td>
-                      <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>₹{(d.selling_price || d.final_selling_price) ? (d.selling_price || d.final_selling_price).toLocaleString() : '—'}</span>
+                      <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>₹{d.selling_price ? d.selling_price.toLocaleString() : '—'}</span>
                     </td>
                     <td>
                       <span style={{ fontWeight: '600', color: '#10b981' }}>₹{d.booking_amount ? d.booking_amount.toLocaleString() : '0'}</span>
@@ -190,20 +189,19 @@ function Deals() {
                         style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', width: 'auto' }}
                       >
                         <option value="negotiation">Negotiation</option>
-                        <option value="booking_pending">Booking Pending</option>
                         <option value="booked">Booked</option>
-                        <option value="delivered">Delivered</option>
+                        <option value="completed">Completed / Delivered</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      {(d.status || d.deal_status || '').toLowerCase() !== 'delivered' && (
+                      {!['delivered', 'won', 'completed'].includes((d.status || d.deal_status || '').toLowerCase()) && (
                         <button 
-                          onClick={() => handleUpdateStatus(d._id, 'delivered')}
+                          onClick={() => handleUpdateStatus(d._id, 'completed')}
                           className="premium-btn" 
                           style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', backgroundColor: '#10b981' }}
                         >
-                          Mark Delivered
+                          Mark Completed
                         </button>
                       )}
                     </td>
@@ -214,9 +212,9 @@ function Deals() {
                     <td colSpan="7" style={{ padding: '3.5rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                         <Receipt size={36} color="var(--text-muted)" />
-                        <p style={{ margin: 0, fontWeight: '500' }}>No deals recorded yet.</p>
+                        <p style={{ margin: 0, fontWeight: '500' }}>No {labels.deal?.toLowerCase() || 'deals'} recorded yet.</p>
                         <button onClick={() => setShowModal(true)} className="premium-btn" style={{ marginTop: '0.5rem' }}>
-                          <Plus size={15} /> Record First Deal
+                          <Plus size={15} /> Record First {labels.deal || 'Deal'}
                         </button>
                       </div>
                     </td>
@@ -231,28 +229,28 @@ function Deals() {
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ padding: '2rem' }}>
-            <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', fontWeight: '700' }}>Record New Deal</h3>
+            <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', fontWeight: '700' }}>Record New {labels.deal || 'Deal'}</h3>
             <form onSubmit={handleCreateDeal} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Select Vehicle *</label>
-                {vehicles.length > 0 ? (
-                  <select className="premium-input" value={vehicleId} onChange={e => handleVehicleChange(e.target.value)}>
-                    {vehicles.map(v => (
-                      <option key={v._id} value={v._id}>{v.brand} {v.model} ({v.stock_id}) - ₹{(v.selling_price || v.asking_price)?.toLocaleString()}</option>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Target {labels.item || 'Item'} *</label>
+                {items.length > 0 ? (
+                  <select className="premium-input" value={itemId} onChange={e => handleItemChange(e.target.value)}>
+                    {items.map(v => (
+                      <option key={v._id} value={v._id}>{v.name || `${v.brand || ''} ${v.model || ''}`} - ₹{(v.price || v.selling_price || 0).toLocaleString()}</option>
                     ))}
                   </select>
                 ) : (
                   <input 
                     required 
                     className="premium-input" 
-                    placeholder="e.g. Honda City, Hyundai Creta *" 
-                    value={customCarName} 
-                    onChange={e => setCustomCarName(e.target.value)} 
+                    placeholder={`e.g. Target ${labels.item || 'Item'} *`} 
+                    value={customItemName} 
+                    onChange={e => setCustomItemName(e.target.value)} 
                   />
                 )}
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Select Customer *</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Select {labels.customer || 'Customer'} *</label>
                 {customers.length > 0 ? (
                   <select className="premium-input" value={customerId} onChange={e => setCustomerId(e.target.value)}>
                     {customers.map(c => (
@@ -264,13 +262,13 @@ function Deals() {
                     <input 
                       required 
                       className="premium-input" 
-                      placeholder="Customer Name *" 
+                      placeholder={`${labels.customer || 'Customer'} Name *`} 
                       value={customCustomerName} 
                       onChange={e => setCustomCustomerName(e.target.value)} 
                     />
                     <input 
                       required 
-                      type="tel"
+                      type="tel" 
                       className="premium-input" 
                       placeholder="Phone Number *" 
                       value={customCustomerPhone} 
@@ -281,11 +279,11 @@ function Deals() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Final Selling Price (₹) *</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Final Selling Value (₹) *</label>
                   <input required type="number" className="premium-input" placeholder="e.g. 850000" value={sellingPrice} onChange={e => setSellingPrice(e.target.value)} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Booking Token (₹)</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Initial Deposit / Token (₹)</label>
                   <input required type="number" className="premium-input" placeholder="e.g. 25000" value={bookingAmount} onChange={e => setBookingAmount(e.target.value)} />
                 </div>
               </div>
@@ -293,14 +291,13 @@ function Deals() {
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Initial Status</label>
                 <select className="premium-input" value={dealStatus} onChange={e => setDealStatus(e.target.value)}>
                   <option value="Booked">Booked (Token Received)</option>
-                  <option value="Booking Pending">Booking Pending</option>
                   <option value="Negotiation">Negotiation</option>
-                  <option value="Delivered">Delivered</option>
+                  <option value="Completed">Completed / Delivered</option>
                 </select>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setShowModal(false)} className="outline-btn">Cancel</button>
-                <button type="submit" className="premium-btn">Create Deal</button>
+                <button type="submit" className="premium-btn">Create {labels.deal || 'Deal'}</button>
               </div>
             </form>
           </div>

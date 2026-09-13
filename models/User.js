@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
+  business_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Business'
+  },
   name: { 
     type: String, 
     required: true, 

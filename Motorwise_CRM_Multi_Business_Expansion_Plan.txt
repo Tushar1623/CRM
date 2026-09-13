@@ -1,0 +1,661 @@
+Motorwise CRM — Multi-Business CRM Expansion Plan
+Document Version: 1.0
+Repository: Tushar1623/CRM
+Goal: Evolve the current second-hand car CRM into a reusable CRM platform for multiple business types without making the codebase overly complex.
+
+1. EXECUTIVE SUMMARY
+
+Yes, the current Motorwise CRM codebase can be evolved into a CRM that supports multiple types of businesses.
+
+However, the current application is strongly automotive-specific in several areas:
+- Vehicle model
+- Test Drive model
+- interested_car fields
+- Car-specific inventory UI
+- Test-drive workflows
+- Deal logic connected directly to vehicles
+
+The best direction is not to make the entire system generic by simply renaming "car" to "product".
+
+Recommended approach:
+
+Build one generic CRM core
++
+Add business-specific modules/templates
+
+CORE CRM
+- Users
+- Customers / Contacts
+- Leads
+- Follow-ups / Tasks
+- Pipeline
+- Deals
+- Activities
+- Dashboard
+
+Business templates:
+- Used Car
+- Real Estate
+- Education / Admissions
+- Service Business
+- General Sales
+
+The existing Motorwise CRM should become the first business template: Used Car Dealership.
+
+2. WHAT IS ALREADY REUSABLE
+
+The current CRM already has several modules that are useful for almost any business:
+- User authentication
+- Customers
+- Leads
+- Follow-ups
+- Pipeline
+- Deals
+- Activities
+- Search
+- Dashboard statistics
+
+Recommended core models:
+User
+Customer
+Lead
+FollowUp
+Deal
+Activity
+
+3. AUTOMOTIVE-SPECIFIC MODULES
+
+Current models such as Vehicle and TestDrive should not be treated as universal CRM models.
+
+Recommended future structure:
+
+CORE:
+User
+Customer
+Lead
+FollowUp
+Deal
+Activity
+
+OPTIONAL MODULES:
+Item / Inventory
+Appointment
+
+BUSINESS TEMPLATES:
+Used Cars
+Real Estate
+Education
+Services
+General Sales
+
+4. GENERIC LEAD STRUCTURE
+
+Recommended generic Lead:
+
+lead
+_id
+customer_id
+assigned_to
+title
+source
+priority
+status
+estimated_value
+next_follow_up_at
+notes
+custom_fields {}
+created_at
+updated_at
+
+Business-specific fields should go into custom_fields.
+
+Used Car example:
+preferred_vehicle
+budget
+preferred_brand
+preferred_model
+fuel
+transmission
+buying_timeline
+exchange_vehicle
+finance_required
+
+Real Estate example:
+property_type
+preferred_location
+budget
+bedrooms
+move_in_timeline
+furnished
+
+Education example:
+course
+qualification
+admission_session
+budget
+counsellor
+preferred_college
+
+5. GENERALIZE INVENTORY
+
+The generic backend concept should become Item or Product.
+
+items
+_id
+business_id
+name
+category
+code
+price
+status
+description
+custom_fields {}
+created_at
+updated_at
+
+Examples:
+Used Car → Item = Vehicle
+Real Estate → Item = Property
+Travel → Item = Package
+Equipment Rental → Item = Equipment
+Consulting → No inventory required
+
+6. GENERALIZE TEST DRIVE INTO APPOINTMENT
+
+Recommended model:
+
+appointments
+_id
+lead_id
+customer_id
+item_id
+assigned_to
+scheduled_at
+type
+status
+location
+notes
+created_at
+updated_at
+
+Appointment types:
+Used Car → test_drive
+Real Estate → site_visit
+Consulting → consultation
+Education → counselling
+Salon → appointment
+Service Business → inspection
+
+Frontend labels can differ while backend stays generic.
+
+7. GENERALIZE DEALS
+
+Recommended generic Deal:
+
+deals
+_id
+lead_id
+customer_id
+assigned_to
+title
+value
+amount_received
+status
+expected_close_date
+closed_at
+notes
+custom_fields {}
+created_at
+updated_at
+
+8. KEEP BACKEND GENERIC, UI INDUSTRY-SPECIFIC
+
+Backend terms:
+Customer
+Lead
+Appointment
+Item
+Deal
+Activity
+
+Used Car UI:
+Customer
+Lead
+Test Drive
+Car
+Booking
+Activity
+
+Real Estate UI:
+Client
+Lead
+Site Visit
+Property
+Deal
+Activity
+
+Education UI:
+Student
+Enquiry
+Counselling
+Course
+Admission
+Activity
+
+9. CONFIGURATION-DRIVEN SIDEBAR
+
+Instead of hard-coding all pages, eventually use business configuration.
+
+Used Car:
+Dashboard ON
+Leads ON
+Follow-ups ON
+Inventory ON
+Appointments ON
+Deals ON
+Reports ON
+
+Labels:
+Inventory Name = Cars
+Appointment Name = Test Drives
+Deal Name = Booking / Sale
+
+Real Estate:
+Inventory Name = Properties
+Appointment Name = Site Visits
+Deal Name = Booking / Sale
+
+10. OPTIONAL MODULE SYSTEM
+
+Always available:
+- Users
+- Customers
+- Leads
+- Follow-ups
+- Deals
+- Activities
+- Dashboard
+
+Optional:
+- Inventory
+- Appointments
+- Reports
+
+A business should only see modules relevant to it.
+
+11. DO NOT BUILD A FULL NO-CODE SYSTEM YET
+
+Avoid:
+- Dynamic database table builders
+- Arbitrary workflow builders
+- Custom page builders
+- Drag-and-drop schema builders
+
+For now, use:
+custom_fields {}
+
+Example:
+custom_fields: {
+  preferred_colour: "White",
+  finance_required: true
+}
+
+12. REMOVE HARD-CODED SALESPEOPLE
+
+Do not hard-code names like:
+Amit Sharma
+Raj Malhotra
+
+Employees must come from the Users collection.
+
+13. MULTI-BUSINESS DATA MODEL
+
+If serving multiple companies, add business_id to:
+
+users
+customers
+leads
+items
+appointments
+followups
+deals
+activities
+
+This separates each company's data.
+
+14. BUSINESS COLLECTION
+
+Recommended:
+
+businesses
+_id
+name
+business_type
+
+settings {
+  customer_label
+  lead_label
+  item_label
+  appointment_label
+  deal_label
+}
+
+modules {
+  inventory
+  appointments
+  deals
+  reports
+}
+
+created_at
+updated_at
+
+15. USER RELATIONSHIP
+
+users
+_id
+business_id
+name
+email
+password
+role
+status
+
+Keep one business per user initially for simplicity.
+
+16. RECOMMENDED THREE-LAYER ARCHITECTURE
+
+Layer 1: CORE CRM
+- Authentication
+- Customers
+- Leads
+- Follow-ups
+- Deals
+- Activities
+
+Layer 2: OPTIONAL MODULES
+- Inventory / Items
+- Appointments
+- Reports
+
+Layer 3: BUSINESS TEMPLATE
+- Used Cars
+- Real Estate
+- Education
+- General Sales
+- Service Business
+
+17. RECOMMENDED MIGRATION PATH
+
+Phase 1:
+Finish Motorwise as a stable used-car CRM.
+- Clean codebase
+- Remove in-memory database
+- Fix MongoDB
+- Fix authentication
+- Remove hard-coded demo data
+- Simplify workflows
+
+Phase 2:
+Generalize reusable backend models.
+- TestDrive → Appointment
+- Vehicle → Item
+
+Keep frontend labels automotive-specific.
+
+Phase 3:
+Move automotive fields into custom_fields or configuration.
+
+Phase 4:
+Build one second business template.
+
+Best first second-template:
+Real Estate
+
+Why:
+Used Car workflow:
+Lead → Car → Test Drive → Negotiation → Booking → Sale
+
+Real Estate workflow:
+Lead → Property → Site Visit → Negotiation → Booking → Sale
+
+18. USED CAR TEMPLATE
+
+Template:
+used_car
+
+Labels:
+Customer = Customer
+Lead = Lead
+Item = Car
+Appointment = Test Drive
+Deal = Booking / Sale
+
+Modules:
+Dashboard
+Leads
+Follow-ups
+Inventory
+Appointments
+Deals
+
+19. REAL ESTATE TEMPLATE
+
+Template:
+real_estate
+
+Labels:
+Customer = Client
+Lead = Lead
+Item = Property
+Appointment = Site Visit
+Deal = Booking / Sale
+
+Modules:
+Dashboard
+Leads
+Follow-ups
+Properties
+Site Visits
+Deals
+
+20. EDUCATION TEMPLATE
+
+Template:
+education
+
+Labels:
+Customer = Student
+Lead = Enquiry
+Appointment = Counselling
+Deal = Admission
+
+Modules:
+Dashboard
+Enquiries
+Follow-ups
+Counselling
+Admissions
+
+21. SERVICE BUSINESS TEMPLATE
+
+Template:
+service
+
+Labels:
+Customer = Client
+Lead = Enquiry
+Appointment = Appointment
+Deal = Job / Contract
+
+Modules:
+Dashboard
+Leads
+Follow-ups
+Appointments
+Deals
+
+22. GENERAL SALES TEMPLATE
+
+Template:
+general_sales
+
+Modules:
+Dashboard
+Leads
+Follow-ups
+Pipeline
+Deals
+
+No inventory required by default.
+
+Good for:
+- Marketing agencies
+- Consultants
+- B2B services
+- Software sales
+- Insurance sales
+- Small agencies
+
+23. WHAT NOT TO DO
+
+Do not:
+- Rename every Vehicle field blindly
+- Put every business field in one massive Lead schema
+- Build a complex no-code database builder
+- Build many templates immediately
+- Rewrite the entire frontend before Motorwise works
+- Create separate backend codebases for each industry
+
+Instead:
+One core backend
++
+Configurable modules
++
+Industry templates
+
+24. FUTURE COLLECTIONS
+
+Recommended future collections:
+
+businesses
+users
+customers
+leads
+items
+appointments
+followups
+deals
+activities
+
+Optional:
+notifications
+
+25. SIMPLE BUSINESS CONFIG EXAMPLE
+
+Used Car:
+
+{
+  "business_type": "used_car",
+  "labels": {
+    "customer": "Customer",
+    "lead": "Lead",
+    "item": "Car",
+    "appointment": "Test Drive",
+    "deal": "Booking"
+  },
+  "modules": {
+    "inventory": true,
+    "appointments": true,
+    "deals": true,
+    "reports": true
+  }
+}
+
+Real Estate:
+
+{
+  "business_type": "real_estate",
+  "labels": {
+    "customer": "Client",
+    "lead": "Lead",
+    "item": "Property",
+    "appointment": "Site Visit",
+    "deal": "Booking"
+  },
+  "modules": {
+    "inventory": true,
+    "appointments": true,
+    "deals": true,
+    "reports": true
+  }
+}
+
+26. FINAL STRATEGY
+
+Do not market the current product immediately as "CRM for every business".
+
+First build:
+Motorwise CRM — Used Car Dealership CRM
+
+Make it stable.
+
+Then evolve it into:
+CRM Core
++
+Industry Templates
+
+Recommended template order:
+1. Used Cars
+2. Real Estate
+3. General Sales
+4. Education
+5. Service Business
+
+27. FINAL PRODUCT VISION
+
+Future onboarding:
+
+What type of business do you run?
+
+[Used Car Dealership]
+[Real Estate]
+[Education]
+[Service Business]
+[General Sales]
+
+Based on selection, the CRM changes:
+- Sidebar labels
+- Forms
+- Custom fields
+- Appointment names
+- Inventory fields
+- Deal terminology
+
+The same CRM engine remains underneath.
+
+28. FINAL DECISION
+
+Yes, the current codebase can become a multi-business CRM.
+
+The right architecture is:
+
+ONE REUSABLE CRM CORE
++
+BUSINESS-SPECIFIC TEMPLATES
+
+The current Motorwise CRM should become:
+Template #1 — Used Car Dealership
+
+Do not rewrite the entire application now.
+
+First:
+- Finish Motorwise
+- Clean the codebase
+- Stabilize MongoDB
+- Standardize models
+- Generalize only clearly reusable concepts
+
+Then build one second template.
+
+If the second business works without major backend rewrites, you have successfully created a reusable CRM platform.

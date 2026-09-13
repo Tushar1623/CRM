@@ -5,13 +5,16 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-// Direct Mongoose Models
+// Mongoose Models
+const Business = require('./models/Business');
 const User = require('./models/User');
 const Customer = require('./models/Customer');
-const Vehicle = require('./models/Vehicle');
+const Item = require('./models/Item');
+const Vehicle = require('./models/Vehicle'); // Alias of Item
 const Lead = require('./models/Lead');
 const FollowUp = require('./models/FollowUp');
-const TestDrive = require('./models/TestDrive');
+const Appointment = require('./models/Appointment');
+const TestDrive = require('./models/TestDrive'); // Alias of Appointment
 const Deal = require('./models/Deal');
 const Activity = require('./models/Activity');
 const { optionalAuth, JWT_SECRET } = require('./middleware/auth');
@@ -35,13 +38,20 @@ mongoose.connect(MONGO_URI)
     console.error('❌ MongoDB Atlas connection error:', err.message);
   });
 
-// Seed default admin and inventory if empty
+// Seed default business, admin and sample inventory if empty
 async function initializeDefaults() {
   try {
+    let business = await Business.findOne();
+    if (!business) {
+      business = await Business.create(Business.TEMPLATES.used_car);
+      console.log('🏢 Initial business template created: Used Car Dealership');
+    }
+
     const userCount = await User.countDocuments();
     if (userCount === 0) {
       const password_hash = await bcrypt.hash('password123', 10);
       await User.create({
+        business_id: business._id,
         name: 'Amit Sharma',
         email: 'admin@motorwise.com',
         phone: '9876543210',
@@ -52,47 +62,45 @@ async function initializeDefaults() {
       console.log('👤 Default admin user seeded: admin@motorwise.com / password123');
     }
 
-    const vehicleCount = await Vehicle.countDocuments();
-    if (vehicleCount === 0) {
-      await Vehicle.insertMany([
+    const itemCount = await Item.countDocuments();
+    if (itemCount === 0) {
+      await Item.insertMany([
         {
+          business_id: business._id,
           stock_id: 'STK-2026-001',
+          code: 'STK-2026-001',
+          name: 'Hyundai Creta SX(O)',
           brand: 'Hyundai',
           model: 'Creta SX(O)',
+          category: 'SUV',
           year: 2022,
           fuel: 'Petrol',
           transmission: 'Manual',
           km_driven: 28000,
+          price: 1150000,
           selling_price: 1150000,
           status: 'Available',
-          notes: 'Single owner, pristine showroom condition'
+          description: 'Single owner, pristine condition with complete service record'
         },
         {
+          business_id: business._id,
           stock_id: 'STK-2026-002',
+          code: 'STK-2026-002',
+          name: 'Honda City ZX',
           brand: 'Honda',
           model: 'City ZX',
+          category: 'Sedan',
           year: 2021,
           fuel: 'Petrol',
           transmission: 'Automatic',
           km_driven: 32000,
+          price: 980000,
           selling_price: 980000,
           status: 'Available',
-          notes: 'Full dealership service history'
-        },
-        {
-          stock_id: 'STK-2026-003',
-          brand: 'Tata',
-          model: 'Nexon Fearless Plus',
-          year: 2023,
-          fuel: 'Diesel',
-          transmission: 'Manual',
-          km_driven: 15000,
-          selling_price: 1220000,
-          status: 'Available',
-          notes: 'Top model with sunroof and 360 camera'
+          description: 'Full dealership service history, sunroof, leather seats'
         }
       ]);
-      console.log('🚗 Initial showroom inventory seeded into MongoDB Atlas');
+      console.log('📦 Initial inventory seeded into MongoDB Atlas');
     }
   } catch (err) {
     console.error('Initialization note:', err.message);
@@ -107,7 +115,56 @@ function cleanPhone(raw) {
 }
 
 // ==========================================
-// 1. AUTHENTICATION & USERS
+// 1. BUSINESS CONFIGURATION & TEMPLATES
+// ==========================================
+app.get('/api/business/current', async (req, res) => {
+  try {
+    let business = await Business.findOne();
+    if (!business) {
+      business = await Business.create(Business.TEMPLATES.used_car);
+    }
+    res.json({
+      business,
+      available_templates: Business.TEMPLATES
+    });
+  } catch (error) {
+    console.error('Fetch business error:', error);
+    res.status(500).json({ error: 'Failed to fetch business configuration' });
+  }
+});
+
+app.put('/api/business/template', async (req, res) => {
+  try {
+    const { business_type } = req.body;
+    const template = Business.TEMPLATES[business_type];
+    if (!template) {
+      return res.status(400).json({ error: `Invalid business type: ${business_type}` });
+    }
+
+    let business = await Business.findOne();
+    if (!business) {
+      business = new Business(template);
+    } else {
+      business.business_type = template.business_type;
+      business.name = template.name;
+      business.labels = template.labels;
+      business.modules = template.modules;
+    }
+    await business.save();
+
+    console.log(`🔄 Switched active business template to: ${business.business_type}`);
+    res.json({
+      message: `Switched template to ${business.name}`,
+      business
+    });
+  } catch (error) {
+    console.error('Update template error:', error);
+    res.status(500).json({ error: 'Failed to switch business template' });
+  }
+});
+
+// ==========================================
+// 2. AUTHENTICATION & USERS
 // ==========================================
 app.post('/api/auth/login', async (req, res) => {
   try {
@@ -158,20 +215,18 @@ app.get('/api/users', async (req, res) => {
 });
 
 // ==========================================
-// 2. DASHBOARD & STATS
+// 3. DASHBOARD & STATS
 // ==========================================
 app.get('/api/stats', async (req, res) => {
   try {
     const totalLeads = await Lead.countDocuments();
-    const carsAvailable = await Vehicle.countDocuments({ status: { $regex: /^available$/i } });
-    const carsSold = await Vehicle.countDocuments({ status: { $regex: /^sold$/i } });
+    const carsAvailable = await Item.countDocuments({ status: { $regex: /^available$/i } });
+    const carsSold = await Item.countDocuments({ status: { $regex: /^sold$/i } });
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
 
-    const testDrivesToday = await TestDrive.countDocuments({
+    const testDrivesToday = await Appointment.countDocuments({
       scheduled_at: { $gte: todayStart, $lte: todayEnd }
     });
 
@@ -180,11 +235,9 @@ app.get('/api/stats', async (req, res) => {
       status: { $ne: 'Completed' }
     });
 
-    // Deals revenue
     const allDeals = await Deal.find();
     const monthlySales = allDeals.reduce((sum, d) => sum + (d.selling_price || 0), 0);
 
-    // Pipeline breakdown
     const allLeads = await Lead.find();
     const pipelineCounts = {
       New: 0, Contacted: 0, Interested: 0, 'Test drive': 0, Negotiation: 0, Booked: 0, Won: 0
@@ -196,9 +249,9 @@ app.get('/api/stats', async (req, res) => {
       if (s.includes('new')) pipelineCounts.New++;
       else if (s.includes('contact')) pipelineCounts.Contacted++;
       else if (s.includes('interest')) pipelineCounts.Interested++;
-      else if (s.includes('test') || s.includes('drive')) pipelineCounts['Test drive']++;
+      else if (s.includes('test') || s.includes('drive') || s.includes('visit') || s.includes('counsel')) pipelineCounts['Test drive']++;
       else if (s.includes('negot')) pipelineCounts.Negotiation++;
-      else if (s.includes('book')) pipelineCounts.Booked++;
+      else if (s.includes('book') || s.includes('admiss')) pipelineCounts.Booked++;
       else if (s.includes('won') || s.includes('sold')) {
         pipelineCounts.Won++;
         wonCount++;
@@ -227,9 +280,6 @@ app.get('/api/stats', async (req, res) => {
 
 app.get('/api/actions/today', async (req, res) => {
   try {
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
     const followups = await FollowUp.find({
       status: { $ne: 'Completed' }
     }).populate('customer_id').populate('lead_id').sort({ scheduled_at: 1 }).limit(10);
@@ -243,7 +293,7 @@ app.get('/api/actions/today', async (req, res) => {
         name: cust?.name || f.customer_name || 'Customer',
         phone: cust?.phone || f.customer_phone || '',
         action: f.type || 'Call',
-        car: lead?.interested_car || 'Enquiry',
+        car: lead?.interested_car || lead?.title || 'Enquiry',
         time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         priority: lead?.priority || 'Warm'
       };
@@ -257,9 +307,9 @@ app.get('/api/actions/today', async (req, res) => {
 });
 
 // ==========================================
-// 3. VEHICLE INVENTORY
+// 4. ITEMS / INVENTORY / VEHICLES
 // ==========================================
-app.get('/api/vehicles', async (req, res) => {
+const handleGetItems = async (req, res) => {
   try {
     const { status, search } = req.query;
     const query = {};
@@ -270,65 +320,92 @@ app.get('/api/vehicles', async (req, res) => {
 
     if (search) {
       const reg = new RegExp(search, 'i');
-      query.$or = [{ brand: reg }, { model: reg }, { stock_id: reg }];
+      query.$or = [{ name: reg }, { brand: reg }, { model: reg }, { code: reg }, { stock_id: reg }];
     }
 
-    const vehicles = await Vehicle.find(query).sort({ createdAt: -1 });
-    res.json(vehicles);
+    const items = await Item.find(query).sort({ createdAt: -1 });
+    res.json(items);
   } catch (error) {
-    console.error('Fetch vehicles error:', error);
-    res.status(500).json({ error: 'Failed to fetch vehicles' });
+    console.error('Fetch items error:', error);
+    res.status(500).json({ error: 'Failed to fetch items' });
   }
-});
+};
 
-app.get('/api/vehicles/:id', async (req, res) => {
+const handleCreateItem = async (req, res) => {
   try {
-    const vehicle = await Vehicle.findById(req.params.id);
-    if (!vehicle) return res.status(404).json({ error: 'Vehicle not found' });
-    res.json(vehicle);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch vehicle' });
-  }
-});
+    const count = await Item.countDocuments();
+    const code = req.body.code || req.body.stock_id || `ITM-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`;
+    const price = req.body.price || req.body.selling_price || 0;
+    const name = req.body.name || (req.body.brand && req.body.model ? `${req.body.brand} ${req.body.model}` : 'New Item');
 
-app.post('/api/vehicles', async (req, res) => {
-  try {
-    const count = await Vehicle.countDocuments();
-    const stock_id = req.body.stock_id || `STK-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`;
-    
-    const vehicle = await Vehicle.create({
+    const item = await Item.create({
       ...req.body,
-      stock_id
+      name,
+      code,
+      stock_id: code,
+      price,
+      selling_price: price
     });
-    res.status(201).json(vehicle);
+    res.status(201).json(item);
   } catch (error) {
-    console.error('Create vehicle error:', error);
+    console.error('Create item error:', error);
     res.status(400).json({ error: error.message });
   }
+};
+
+app.get('/api/items', handleGetItems);
+app.get('/api/vehicles', handleGetItems);
+
+app.get('/api/items/:id', async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+    res.json(item);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch item' });
+  }
+});
+app.get('/api/vehicles/:id', async (req, res) => {
+  const item = await Item.findById(req.params.id);
+  if (!item) return res.status(404).json({ error: 'Vehicle not found' });
+  res.json(item);
 });
 
-app.put('/api/vehicles/:id', async (req, res) => {
+app.post('/api/items', handleCreateItem);
+app.post('/api/vehicles', handleCreateItem);
+
+app.put('/api/items/:id', async (req, res) => {
   try {
-    const updated = await Vehicle.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updated) return res.status(404).json({ error: 'Vehicle not found' });
+    const updated = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Item not found' });
     res.json(updated);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
+app.put('/api/vehicles/:id', async (req, res) => {
+  const updated = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  if (!updated) return res.status(404).json({ error: 'Vehicle not found' });
+  res.json(updated);
+});
 
-app.delete('/api/vehicles/:id', async (req, res) => {
+app.delete('/api/items/:id', async (req, res) => {
   try {
-    const deleted = await Vehicle.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ error: 'Vehicle not found' });
-    res.json({ message: 'Vehicle deleted successfully' });
+    const deleted = await Item.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Item not found' });
+    res.json({ message: 'Item deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete vehicle' });
+    res.status(500).json({ error: 'Failed to delete item' });
   }
+});
+app.delete('/api/vehicles/:id', async (req, res) => {
+  const deleted = await Item.findByIdAndDelete(req.params.id);
+  if (!deleted) return res.status(404).json({ error: 'Vehicle not found' });
+  res.json({ message: 'Vehicle deleted successfully' });
 });
 
 // ==========================================
-// 4. CUSTOMERS
+// 5. CUSTOMERS
 // ==========================================
 app.get('/api/customers', async (req, res) => {
   try {
@@ -363,7 +440,7 @@ app.post('/api/customers', async (req, res) => {
 });
 
 // ==========================================
-// 5. LEADS
+// 6. LEADS
 // ==========================================
 app.get('/api/leads', async (req, res) => {
   try {
@@ -378,6 +455,7 @@ app.get('/api/leads', async (req, res) => {
       const reg = new RegExp(search, 'i');
       query.$or = [
         { interested_car: reg },
+        { title: reg },
         { customer_name: reg },
         { customer_phone: reg }
       ];
@@ -406,8 +484,8 @@ app.get('/api/leads/:id', async (req, res) => {
     const [activities, followups, testDrives, deals] = await Promise.all([
       Activity.find({ lead_id: lead._id }).sort({ createdAt: -1 }),
       FollowUp.find({ lead_id: lead._id }).populate('customer_id').sort({ scheduled_at: 1 }),
-      TestDrive.find({ lead_id: lead._id }).populate('vehicle_id').populate('customer_id').sort({ scheduled_at: 1 }),
-      Deal.find({ lead_id: lead._id }).populate('vehicle_id').populate('customer_id').sort({ createdAt: -1 })
+      Appointment.find({ lead_id: lead._id }).populate('item_id').populate('vehicle_id').populate('customer_id').sort({ scheduled_at: 1 }),
+      Deal.find({ lead_id: lead._id }).populate('item_id').populate('vehicle_id').populate('customer_id').sort({ createdAt: -1 })
     ]);
 
     res.json({ lead, activities, followups, testDrives, deals });
@@ -419,14 +497,13 @@ app.get('/api/leads/:id', async (req, res) => {
 
 app.post('/api/leads', optionalAuth, async (req, res) => {
   try {
-    const { name, phone, email, city, interested_car, budget_max, source, priority, buying_timeline, assigned_to } = req.body;
+    const { name, phone, email, city, interested_car, title, budget_max, source, priority, buying_timeline, assigned_to } = req.body;
     
-    // Auto find or create customer
     const normPhone = cleanPhone(phone) || '9999999999';
     let customer = await Customer.findOne({ phone: normPhone });
     if (!customer) {
       customer = await Customer.create({
-        name: name || 'Walk-in Customer',
+        name: name || 'Prospective Client',
         phone: normPhone,
         email: email || '',
         city: city || 'India'
@@ -435,6 +512,7 @@ app.post('/api/leads', optionalAuth, async (req, res) => {
 
     const count = await Lead.countDocuments();
     const lead_number = `LD-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+    const reqItem = interested_car || title || 'General Requirement';
 
     const lead = await Lead.create({
       lead_number,
@@ -442,23 +520,23 @@ app.post('/api/leads', optionalAuth, async (req, res) => {
       customer_name: customer.name,
       customer_phone: customer.phone,
       customer_email: customer.email,
-      interested_car: interested_car || 'Open Requirement',
+      title: reqItem,
+      interested_car: reqItem,
       budget_max: Number(budget_max) || 0,
-      source: source || 'Walk-in',
+      source: source || 'Direct',
       priority: priority || 'Warm',
       status: 'New Lead',
       buying_timeline: buying_timeline || 'Within 30 Days',
-      assigned_to_name: assigned_to || 'Amit Sharma'
+      assigned_to_name: assigned_to || 'Sales Executive'
     });
 
-    // Log Activity
     await Activity.create({
       lead_id: lead._id,
       customer_id: customer._id,
       activity_type: 'lead_created',
       title: 'Lead Created',
       description: `New enquiry captured for ${lead.interested_car} (Budget: ₹${lead.budget_max?.toLocaleString()})`,
-      user: req.user?.name || 'Amit Sharma'
+      user: req.user?.name || 'Sales Executive'
     });
 
     res.status(201).json(lead);
@@ -504,7 +582,7 @@ app.delete('/api/leads/:id', async (req, res) => {
 });
 
 // ==========================================
-// 6. FOLLOW-UPS
+// 7. FOLLOW-UPS
 // ==========================================
 app.get('/api/followups', async (req, res) => {
   try {
@@ -564,64 +642,77 @@ app.put('/api/followups/:id', optionalAuth, async (req, res) => {
 });
 
 // ==========================================
-// 7. TEST DRIVES
+// 8. APPOINTMENTS / TEST DRIVES
 // ==========================================
-app.get('/api/test-drives', async (req, res) => {
+const handleGetAppointments = async (req, res) => {
   try {
-    const testDrives = await TestDrive.find()
+    const appointments = await Appointment.find()
       .populate('customer_id')
+      .populate('item_id')
       .populate('vehicle_id')
       .populate('lead_id')
       .sort({ scheduled_at: 1 });
 
-    res.json(testDrives);
+    res.json(appointments);
   } catch (error) {
-    console.error('Fetch test drives error:', error);
-    res.status(500).json({ error: 'Failed to fetch test drives' });
+    console.error('Fetch appointments error:', error);
+    res.status(500).json({ error: 'Failed to fetch appointments' });
   }
-});
+};
 
-app.post('/api/test-drives', optionalAuth, async (req, res) => {
+const handleCreateAppointment = async (req, res) => {
   try {
-    const testDrive = await TestDrive.create(req.body);
+    const appointment = await Appointment.create(req.body);
 
     if (req.body.lead_id) {
       await Activity.create({
         lead_id: req.body.lead_id,
         customer_id: req.body.customer_id,
-        activity_type: 'test_drive_scheduled',
-        title: 'Test Drive Booked',
-        description: `Test drive scheduled for ${req.body.car_name || 'Vehicle'} on ${req.body.date || 'today'}`,
+        activity_type: 'appointment_scheduled',
+        title: 'Appointment Booked',
+        description: `${appointment.type || 'Appointment'} scheduled for ${req.body.car_name || req.body.item_name || 'Meeting'} on ${req.body.date || 'today'}`,
         user: req.user?.name || 'Sales Executive'
       });
 
-      await Lead.findByIdAndUpdate(req.body.lead_id, { status: 'Test Drive Scheduled' });
+      await Lead.findByIdAndUpdate(req.body.lead_id, { status: 'Appointment Scheduled' });
     }
 
-    res.status(201).json(testDrive);
+    res.status(201).json(appointment);
   } catch (error) {
-    console.error('Create test drive error:', error);
+    console.error('Create appointment error:', error);
     res.status(400).json({ error: error.message });
   }
-});
+};
 
-app.put('/api/test-drives/:id', optionalAuth, async (req, res) => {
+app.get('/api/appointments', handleGetAppointments);
+app.get('/api/test-drives', handleGetAppointments);
+
+app.post('/api/appointments', optionalAuth, handleCreateAppointment);
+app.post('/api/test-drives', optionalAuth, handleCreateAppointment);
+
+app.put('/api/appointments/:id', optionalAuth, async (req, res) => {
   try {
-    const updated = await TestDrive.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updated) return res.status(404).json({ error: 'Test drive not found' });
+    const updated = await Appointment.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Appointment not found' });
     res.json(updated);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
+app.put('/api/test-drives/:id', optionalAuth, async (req, res) => {
+  const updated = await Appointment.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  if (!updated) return res.status(404).json({ error: 'Test drive not found' });
+  res.json(updated);
+});
 
 // ==========================================
-// 8. DEALS & BOOKINGS
+// 9. DEALS & BOOKINGS
 // ==========================================
 app.get('/api/deals', async (req, res) => {
   try {
     const deals = await Deal.find()
       .populate('customer_id')
+      .populate('item_id')
       .populate('vehicle_id')
       .populate('lead_id')
       .sort({ createdAt: -1 });
@@ -643,12 +734,11 @@ app.post('/api/deals', optionalAuth, async (req, res) => {
       deal_number
     });
 
-    // Mark vehicle reserved if vehicle_id exists
-    if (req.body.vehicle_id) {
-      await Vehicle.findByIdAndUpdate(req.body.vehicle_id, { status: 'Reserved' });
+    const targetItem = req.body.item_id || req.body.vehicle_id;
+    if (targetItem) {
+      await Item.findByIdAndUpdate(targetItem, { status: 'Reserved' });
     }
 
-    // Advance lead to Booked
     if (req.body.lead_id) {
       await Lead.findByIdAndUpdate(req.body.lead_id, { status: 'Booked' });
 
@@ -657,7 +747,7 @@ app.post('/api/deals', optionalAuth, async (req, res) => {
         customer_id: req.body.customer_id,
         activity_type: 'deal_created',
         title: 'Deal Created',
-        description: `Deal ${deal_number} created: ₹${deal.selling_price?.toLocaleString()} (Token: ₹${deal.booking_amount?.toLocaleString()})`,
+        description: `Deal ${deal_number} created: ₹${deal.selling_price?.toLocaleString()} (Deposit: ₹${deal.booking_amount?.toLocaleString()})`,
         user: req.user?.name || 'Sales Executive'
       });
     }
@@ -677,12 +767,13 @@ app.put('/api/deals/:id', optionalAuth, async (req, res) => {
     const newStatus = req.body.deal_status || req.body.status;
     const updated = await Deal.findByIdAndUpdate(req.params.id, req.body, { new: true });
 
-    if (newStatus && deal.vehicle_id) {
-      if (newStatus.toLowerCase() === 'delivered') {
-        await Vehicle.findByIdAndUpdate(deal.vehicle_id, { status: 'Sold' });
+    const targetItem = deal.item_id || deal.vehicle_id;
+    if (newStatus && targetItem) {
+      if (newStatus.toLowerCase() === 'delivered' || newStatus.toLowerCase() === 'won' || newStatus.toLowerCase() === 'completed') {
+        await Item.findByIdAndUpdate(targetItem, { status: 'Sold' });
         if (deal.lead_id) await Lead.findByIdAndUpdate(deal.lead_id, { status: 'Sold / Won' });
       } else if (newStatus.toLowerCase() === 'cancelled') {
-        await Vehicle.findByIdAndUpdate(deal.vehicle_id, { status: 'Available' });
+        await Item.findByIdAndUpdate(targetItem, { status: 'Available' });
       }
     }
 
@@ -694,7 +785,7 @@ app.put('/api/deals/:id', optionalAuth, async (req, res) => {
 });
 
 // ==========================================
-// 9. ACTIVITIES & SEARCH
+// 10. ACTIVITIES & SEARCH
 // ==========================================
 app.get('/api/activities', async (req, res) => {
   try {
@@ -709,19 +800,19 @@ app.get('/api/activities', async (req, res) => {
 app.get('/api/search', async (req, res) => {
   try {
     const q = req.query.q || '';
-    if (!q.trim()) return res.json({ leads: [], vehicles: [] });
+    if (!q.trim()) return res.json({ leads: [], vehicles: [], items: [] });
 
     const reg = new RegExp(q.trim(), 'i');
-    const [leads, vehicles] = await Promise.all([
+    const [leads, items] = await Promise.all([
       Lead.find({
-        $or: [{ interested_car: reg }, { customer_name: reg }, { customer_phone: reg }]
+        $or: [{ interested_car: reg }, { title: reg }, { customer_name: reg }, { customer_phone: reg }]
       }).limit(5),
-      Vehicle.find({
-        $or: [{ brand: reg }, { model: reg }, { stock_id: reg }]
+      Item.find({
+        $or: [{ name: reg }, { brand: reg }, { model: reg }, { code: reg }, { stock_id: reg }]
       }).limit(5)
     ]);
 
-    res.json({ leads, vehicles });
+    res.json({ leads, vehicles: items, items });
   } catch (error) {
     console.error('Search error:', error);
     res.status(500).json({ error: 'Search failed' });
@@ -733,5 +824,5 @@ app.get('/api/search', async (req, res) => {
 // ==========================================
 app.listen(PORT, () => {
   console.log(`🚀 Motorwise CRM backend running on port ${PORT}`);
-  console.log(`🌐 Connected directly to MongoDB Atlas`);
+  console.log(`🌐 Multi-Business Architecture Active on MongoDB Atlas`);
 });

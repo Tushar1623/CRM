@@ -1,17 +1,9 @@
 const mongoose = require('mongoose');
 
-const dealSchema = new mongoose.Schema({
+const appointmentSchema = new mongoose.Schema({
   business_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Business'
-  },
-  deal_number: { 
-    type: String, 
-    required: true,
-    unique: true, 
-    uppercase: true,
-    trim: true,
-    index: true 
   },
   lead_id: { 
     type: mongoose.Schema.Types.ObjectId, 
@@ -33,46 +25,52 @@ const dealSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Item' 
   },
-  vehicle_id: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Item' 
+  // Backward compatibility alias for vehicle_id
+  vehicle_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Item'
+  },
+  item_name: { 
+    type: String, 
+    default: '' 
   },
   car_name: { 
     type: String, 
     default: '' 
   },
-  salesperson_id: { 
+  employee_id: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User' 
   },
-  salesperson_name: { 
+  employee_name: { 
     type: String, 
-    default: 'Amit Sharma' 
+    default: 'Sales Executive' 
   },
-  selling_price: { 
-    type: Number, 
-    required: true, 
-    min: 0 
+  type: {
+    type: String,
+    default: 'Appointment' // e.g. test_drive, site_visit, counselling, consultation
   },
-  booking_amount: { 
-    type: Number, 
-    default: 25000 
-  },
-  payment_status: { 
-    type: String, 
-    default: 'Pending' 
-  },
-  deal_status: { 
-    type: String, 
-    default: 'Booked',
-    index: true 
-  },
-  booking_date: { 
+  date: { 
     type: Date, 
     default: Date.now 
   },
-  delivered_at: { 
-    type: Date 
+  time: { 
+    type: String, 
+    default: '11:30 AM' 
+  },
+  scheduled_at: { 
+    type: Date, 
+    default: Date.now,
+    index: true 
+  },
+  location: { 
+    type: String, 
+    default: 'Office / Showroom' 
+  },
+  status: { 
+    type: String, 
+    default: 'Scheduled',
+    index: true 
   },
   notes: { 
     type: String, 
@@ -88,22 +86,20 @@ const dealSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-dealSchema.pre('save', function(next) {
+appointmentSchema.pre('save', function(next) {
   if (this.vehicle_id && !this.item_id) {
     this.item_id = this.vehicle_id;
   }
   if (this.item_id && !this.vehicle_id) {
     this.vehicle_id = this.item_id;
   }
+  if (this.car_name && !this.item_name) {
+    this.item_name = this.car_name;
+  }
+  if (this.item_name && !this.car_name) {
+    this.car_name = this.item_name;
+  }
   next();
 });
 
-dealSchema.virtual('status')
-  .get(function() { return this.deal_status; })
-  .set(function(v) { this.deal_status = v; });
-
-dealSchema.virtual('final_selling_price')
-  .get(function() { return this.selling_price; })
-  .set(function(v) { this.selling_price = v; });
-
-module.exports = mongoose.model('Deal', dealSchema);
+module.exports = mongoose.model('Appointment', appointmentSchema);

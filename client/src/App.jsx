@@ -1,11 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
   LayoutGrid, Users, CarFront, Search, ChevronDown, Plus, LogOut, 
-  Calendar, CheckSquare, Receipt, CheckCircle 
+  Calendar, CheckSquare, Receipt, CheckCircle, Building2, Briefcase, GraduationCap 
 } from 'lucide-react';
 import { useContext, useState, useEffect, useRef } from 'react';
 
 import { AuthProvider, AuthContext } from './context/AuthContext';
+import { BusinessProvider, useBusiness } from './context/BusinessContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
@@ -50,32 +51,34 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/*" element={
-            <ProtectedRoute>
-              <MainLayout openAddLead={() => setIsAddLeadOpen(true)} />
-              <AddLeadModal 
-                isOpen={isAddLeadOpen} 
-                onClose={() => setIsAddLeadOpen(false)} 
-                onLeadCreated={() => {
-                  showToast('Lead created successfully!');
-                  window.dispatchEvent(new Event('lead-created'));
-                }} 
-              />
-            </ProtectedRoute>
-          } />
-        </Routes>
-      </Router>
+      <BusinessProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/*" element={
+              <ProtectedRoute>
+                <MainLayout openAddLead={() => setIsAddLeadOpen(true)} />
+                <AddLeadModal 
+                  isOpen={isAddLeadOpen} 
+                  onClose={() => setIsAddLeadOpen(false)} 
+                  onLeadCreated={() => {
+                    showToast('Lead captured successfully!');
+                    window.dispatchEvent(new Event('lead-created'));
+                  }} 
+                />
+              </ProtectedRoute>
+            } />
+          </Routes>
+        </Router>
 
-      {/* Global Toast Notification */}
-      {toastMessage && (
-        <div style={styles.toast}>
-          <CheckCircle size={16} color="#10b981" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+        {/* Global Toast Notification */}
+        {toastMessage && (
+          <div style={styles.toast}>
+            <CheckCircle size={16} color="#10b981" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </BusinessProvider>
     </AuthProvider>
   );
 }
@@ -107,15 +110,18 @@ function MainLayout({ openAddLead }) {
 
 function Header({ openAddLead }) {
   const { user, logout } = useContext(AuthContext);
+  const { business, switchTemplate, templates, labels } = useBusiness();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showBusinessMenu, setShowBusinessMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   
   const searchRef = useRef(null);
   const profileRef = useRef(null);
+  const businessRef = useRef(null);
   const navigate = useNavigate();
 
-  // Click outside to dismiss search results and user dropdown
+  // Click outside to dismiss search results, business menu, and user dropdown
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -123,6 +129,9 @@ function Header({ openAddLead }) {
       }
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setShowDropdown(false);
+      }
+      if (businessRef.current && !businessRef.current.contains(e.target)) {
+        setShowBusinessMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -142,15 +151,23 @@ function Header({ openAddLead }) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  const templateIcons = {
+    used_car: '🚗',
+    real_estate: '🏢',
+    education: '🎓',
+    service: '💼',
+    general_sales: '📈'
+  };
+
   return (
     <header style={styles.header}>
-      {/* Global Live Search Bar */}
+      {/* Live Search Bar */}
       <div ref={searchRef} style={{ position: 'relative' }}>
         <div style={styles.searchBar}>
           <Search size={17} color="var(--text-secondary)" />
           <input 
             type="text" 
-            placeholder="Search customer, phone, car..." 
+            placeholder={`Search ${labels.customer?.toLowerCase() || 'contact'}, phone, ${labels.item?.toLowerCase() || 'item'}...`}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={styles.searchInput} 
@@ -162,35 +179,35 @@ function Header({ openAddLead }) {
           <div className="glass-panel" style={styles.searchResultsDropdown}>
             {searchResults.leads?.length > 0 && (
               <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)' }}>
-                <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.75rem', fontWeight: '700', color: 'var(--accent-primary)', textTransform: 'uppercase' }}>Leads</p>
+                <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.75rem', fontWeight: '700', color: 'var(--accent-primary)', textTransform: 'uppercase' }}>{labels.lead || 'Leads'}</p>
                 {searchResults.leads.map(l => (
                   <div 
                     key={l._id} 
                     onClick={() => { setSearchQuery(''); setSearchResults(null); navigate(`/leads/${l._id}`); }}
                     style={styles.searchItem}
                   >
-                    <strong>{l.customer_id?.name || l.customer_name}</strong> • {l.interested_car} ({l.status})
+                    <strong>{l.customer_id?.name || l.customer_name}</strong> • {l.interested_car || l.title} ({l.status})
                   </div>
                 ))}
               </div>
             )}
 
-            {searchResults.vehicles?.length > 0 && (
+            {(searchResults.items?.length > 0 || searchResults.vehicles?.length > 0) && (
               <div style={{ padding: '0.75rem 1rem' }}>
-                <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.75rem', fontWeight: '700', color: 'var(--accent-primary)', textTransform: 'uppercase' }}>Showroom Inventory</p>
-                {searchResults.vehicles.map(v => (
+                <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.75rem', fontWeight: '700', color: 'var(--accent-primary)', textTransform: 'uppercase' }}>{labels.item_plural || 'Inventory'}</p>
+                {(searchResults.items || searchResults.vehicles).map(v => (
                   <div 
                     key={v._id} 
                     onClick={() => { setSearchQuery(''); setSearchResults(null); navigate('/inventory'); }}
                     style={styles.searchItem}
                   >
-                    <strong>{v.brand} {v.model}</strong> • {v.stock_id} (₹{v.asking_price?.toLocaleString() || v.selling_price?.toLocaleString()})
+                    <strong>{v.name || `${v.brand || ''} ${v.model || ''}`}</strong> • {v.code || v.stock_id} (₹{(v.price || v.selling_price || 0).toLocaleString()})
                   </div>
                 ))}
               </div>
             )}
 
-            {searchResults.leads?.length === 0 && searchResults.vehicles?.length === 0 && (
+            {searchResults.leads?.length === 0 && (!searchResults.items || searchResults.items.length === 0) && (
               <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                 No records match "{searchQuery}"
               </div>
@@ -200,9 +217,70 @@ function Header({ openAddLead }) {
       </div>
       
       <div style={styles.headerActions}>
+        {/* Industry Template Switcher */}
+        <div ref={businessRef} style={{ position: 'relative' }}>
+          <button 
+            onClick={() => setShowBusinessMenu(!showBusinessMenu)}
+            className="outline-btn"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.9rem', fontSize: '0.82rem', fontWeight: '700', borderRadius: '8px' }}
+            title="Switch Business Type"
+          >
+            <span>{templateIcons[business.business_type] || '🚗'}</span>
+            <span>{business.name || 'Business Template'}</span>
+            <ChevronDown size={14} />
+          </button>
+
+          {showBusinessMenu && (
+            <div className="glass-panel" style={styles.templateMenu}>
+              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)' }}>
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '700', color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  SELECT BUSINESS TEMPLATE
+                </p>
+                <small style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Dynamically transforms terminology & modules</small>
+              </div>
+              <div style={{ padding: '0.4rem' }}>
+                {Object.entries(templates).map(([key, tmpl]) => {
+                  const isSelected = business.business_type === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        switchTemplate(key);
+                        setShowBusinessMenu(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '0.6rem 0.8rem',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: isSelected ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                        color: isSelected ? 'var(--accent-primary)' : 'var(--text-primary)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.84rem',
+                        fontWeight: isSelected ? '700' : '500',
+                        transition: 'background 0.15s ease'
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <span>{templateIcons[key] || '📋'}</span>
+                        <span>{tmpl.name}</span>
+                      </span>
+                      {isSelected && <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: '700' }}>Active</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Global Add Lead Modal Trigger */}
         <button onClick={openAddLead} className="premium-btn">
-          <Plus size={16} /> Add Lead
+          <Plus size={16} /> Add {labels.lead || 'Lead'}
         </button>
         
         {/* User Profile */}
@@ -235,22 +313,37 @@ function Header({ openAddLead }) {
 
 function Sidebar() {
   const location = useLocation();
+  const { business, labels, modules } = useBusiness();
   const isActive = (path) => {
     if (path === '/' && location.pathname === '/') return styles.activeNavItem;
     if (path !== '/' && location.pathname.startsWith(path)) return styles.activeNavItem;
     return {};
   };
 
+  const businessTypeBadge = {
+    used_car: 'USED CARS',
+    real_estate: 'REAL ESTATE',
+    education: 'ACADEMICS',
+    service: 'SERVICES',
+    general_sales: 'B2B SALES'
+  }[business.business_type] || 'BUSINESS CRM';
+
   return (
     <aside style={styles.sidebar}>
       {/* Brand logo */}
       <div style={styles.logoArea}>
-        <div style={styles.logoIcon}>M</div>
+        <div style={styles.logoIcon}>
+          {business.business_type === 'real_estate' ? <Building2 size={20} /> :
+           business.business_type === 'education' ? <GraduationCap size={20} /> :
+           business.business_type === 'service' ? <Briefcase size={20} /> : 'M'}
+        </div>
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '800', letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)' }}>motorwise</h2>
-          <div style={{ fontSize: '0.72rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: '600' }}>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: '800', letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)' }}>
+            {business.name || 'Motorwise CRM'}
+          </h2>
+          <div style={{ fontSize: '0.7rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: '700' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
-            DEALERSHIP CRM
+            {businessTypeBadge}
           </div>
         </div>
       </div>
@@ -263,22 +356,30 @@ function Sidebar() {
         
         <div style={styles.navSection}>SALES & PIPELINE</div>
         <Link to="/leads" style={{ ...styles.navItem, ...isActive('/leads') }}>
-          <Users size={17} /> Leads
+          <Users size={17} /> {labels.lead ? `${labels.lead}s` : 'Leads'}
         </Link>
         <Link to="/follow-ups" style={{ ...styles.navItem, ...isActive('/follow-ups') }}>
           <CheckSquare size={17} /> Follow-ups
         </Link>
-        <Link to="/test-drives" style={{ ...styles.navItem, ...isActive('/test-drives') }}>
-          <Calendar size={17} /> Test Drives
-        </Link>
         
-        <div style={styles.navSection}>INVENTORY & DEALS</div>
-        <Link to="/inventory" style={{ ...styles.navItem, ...isActive('/inventory') }}>
-          <CarFront size={17} /> Inventory
-        </Link>
-        <Link to="/deals" style={{ ...styles.navItem, ...isActive('/deals') }}>
-          <Receipt size={17} /> Deals & Bookings
-        </Link>
+        {modules.appointments !== false && (
+          <Link to="/test-drives" style={{ ...styles.navItem, ...isActive('/test-drives') }}>
+            <Calendar size={17} /> {labels.appointment_plural || 'Appointments'}
+          </Link>
+        )}
+        
+        <div style={styles.navSection}>CATALOG & SALES</div>
+        {modules.inventory !== false && (
+          <Link to="/inventory" style={{ ...styles.navItem, ...isActive('/inventory') }}>
+            <CarFront size={17} /> {labels.item_plural || 'Inventory'}
+          </Link>
+        )}
+        
+        {modules.deals !== false && (
+          <Link to="/deals" style={{ ...styles.navItem, ...isActive('/deals') }}>
+            <Receipt size={17} /> {labels.deal || 'Deals & Bookings'}
+          </Link>
+        )}
       </nav>
     </aside>
   );
@@ -295,15 +396,15 @@ const styles = {
     overflowY: 'auto'
   },
   logoArea: { 
-    padding: '1.5rem', 
+    padding: '1.25rem 1.25rem', 
     display: 'flex', 
     alignItems: 'center', 
     gap: '0.85rem', 
     borderBottom: '1px solid var(--border-color)' 
   },
   logoIcon: { 
-    width: '36px', 
-    height: '36px', 
+    width: '38px', 
+    height: '38px', 
     borderRadius: '8px', 
     background: 'var(--accent-brand)', 
     color: 'white', 
@@ -311,7 +412,8 @@ const styles = {
     alignItems: 'center', 
     justifyContent: 'center', 
     fontWeight: '800', 
-    fontSize: '1.3rem' 
+    fontSize: '1.2rem',
+    flexShrink: 0
   },
   nav: { 
     padding: '1.25rem 0.85rem', 
@@ -394,6 +496,14 @@ const styles = {
     display: 'flex', 
     alignItems: 'center', 
     gap: '1.25rem' 
+  },
+  templateMenu: {
+    position: 'absolute',
+    top: '110%',
+    right: 0,
+    width: '280px',
+    zIndex: 50,
+    boxShadow: 'var(--shadow-lg)'
   },
   userProfile: { 
     display: 'flex', 

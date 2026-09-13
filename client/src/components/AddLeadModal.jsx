@@ -1,34 +1,40 @@
 import { useState, useEffect } from 'react';
-import { X, User, Phone, Mail, CarFront, IndianRupee, Sparkles } from 'lucide-react';
+import { X, User, Phone, Mail, Sparkles } from 'lucide-react';
 import api from '../api';
+import { useBusiness } from '../context/BusinessContext';
 
 function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
-  const [vehicles, setVehicles] = useState([]);
+  const { labels, users } = useBusiness();
+  const [items, setItems] = useState([]);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [customCarMode, setCustomCarMode] = useState(false);
-  const [interestedCar, setInterestedCar] = useState('Hyundai Creta');
-  const [customCar, setCustomCar] = useState('');
+  const [customItemMode, setCustomItemMode] = useState(false);
+  const [interestedItem, setInterestedItem] = useState('');
+  const [customItem, setCustomItem] = useState('');
   const [budgetMax, setBudgetMax] = useState('1000000');
-  const [source, setSource] = useState('Walk-in');
+  const [source, setSource] = useState('Direct');
   const [priority, setPriority] = useState('Warm');
   const [timeline, setTimeline] = useState('Within 30 Days');
-  const [assignedTo, setAssignedTo] = useState('Amit Sharma');
+  const [assignedTo, setAssignedTo] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      api('/api/vehicles')
+      api('/api/items')
         .then(data => {
           if (Array.isArray(data) && data.length > 0) {
-            setVehicles(data);
-            setInterestedCar(`${data[0].brand} ${data[0].model}`);
+            setItems(data);
+            setInterestedItem(data[0].name || `${data[0].brand || ''} ${data[0].model || ''}`);
           }
         })
         .catch(err => console.error(err));
+
+      if (users && users.length > 0 && !assignedTo) {
+        setAssignedTo(users[0].name);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, users]);
 
   if (!isOpen) return null;
 
@@ -36,29 +42,30 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
     e.preventDefault();
     setLoading(true);
 
-    const car = customCarMode && customCar.trim() ? customCar.trim() : interestedCar;
+    const targetItem = customItemMode && customItem.trim() ? customItem.trim() : (interestedItem || 'General Requirement');
 
     try {
       const data = await api.post('/api/leads', {
         name,
         phone,
         email,
-        interested_car: car,
+        interested_car: targetItem,
+        title: targetItem,
         budget_max: budgetMax,
         source,
         priority,
         buying_timeline: timeline,
-        assigned_to: assignedTo
+        assigned_to: assignedTo || (users[0]?.name || 'Sales Executive')
       });
       
       setName('');
       setPhone('');
       setEmail('');
-      setCustomCar('');
-      setCustomCarMode(false);
+      setCustomItem('');
+      setCustomItemMode(false);
       onClose();
 
-      window.dispatchEvent(new CustomEvent('crm-toast', { detail: `Lead for ${data.customer_id?.name || 'Customer'} added successfully!` }));
+      window.dispatchEvent(new CustomEvent('crm-toast', { detail: `${labels.lead || 'Lead'} captured successfully!` }));
 
       if (onLeadCreated) onLeadCreated(data);
     } catch (err) {
@@ -90,13 +97,13 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem' }}>
           <div>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: '800', color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>
-              <Sparkles size={12} /> NEW ENQUIRY
+              <Sparkles size={12} /> NEW {labels.lead?.toUpperCase() || 'LEAD'}
             </span>
             <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.4rem', fontWeight: '800', color: 'var(--text-primary)' }}>
-              Capture New Lead
+              Capture New {labels.lead || 'Lead'}
             </h2>
             <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Record customer details and match them with showroom inventory.
+              Record {labels.customer?.toLowerCase() || 'customer'} details and match requirements.
             </p>
           </div>
           <button 
@@ -117,7 +124,7 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
-                  Customer Name *
+                  {labels.customer || 'Customer'} Name *
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input 
@@ -168,15 +175,15 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
             </div>
           </div>
 
-          {/* Section 2: Vehicle & Budget Requirements */}
+          {/* Section 2: Requirement */}
           <div style={{ padding: '1rem', backgroundColor: 'var(--bg-dark)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <CarFront size={14} color="var(--accent-primary)" /> Interested Vehicle *
+              <label style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                Interested {labels.item || 'Item'} *
               </label>
               <button 
                 type="button" 
-                onClick={() => setCustomCarMode(!customCarMode)}
+                onClick={() => setCustomItemMode(!customItemMode)}
                 style={{ 
                   background: 'none', 
                   border: 'none', 
@@ -187,67 +194,62 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
                   padding: 0
                 }}
               >
-                {customCarMode ? '← Pick from inventory' : '+ Type custom vehicle'}
+                {customItemMode ? `← Pick from ${labels.item_plural || 'catalog'}` : '+ Type custom requirement'}
               </button>
             </div>
 
-            {customCarMode ? (
+            {customItemMode ? (
               <input 
                 className="premium-input" 
-                placeholder="e.g. Toyota Fortuner 4x4, Honda City ZX..."
-                value={customCar}
-                onChange={e => setCustomCar(e.target.value)}
+                placeholder={`Enter requirement or preferred ${labels.item?.toLowerCase() || 'item'}...`}
+                value={customItem}
+                onChange={e => setCustomItem(e.target.value)}
                 autoFocus
               />
-            ) : (
+            ) : items.length > 0 ? (
               <select 
                 className="premium-input" 
-                value={interestedCar} 
-                onChange={e => setInterestedCar(e.target.value)}
+                value={interestedItem} 
+                onChange={e => setInterestedItem(e.target.value)}
               >
-                {vehicles.map(v => (
-                  <option key={v._id} value={`${v.brand} ${v.model}`}>
-                    {v.brand} {v.model} ({v.year}) - ₹{(v.selling_price || v.asking_price)?.toLocaleString()}
+                {items.map(it => (
+                  <option key={it._id} value={it.name || `${it.brand || ''} ${it.model || ''}`}>
+                    {it.name || `${it.brand || ''} ${it.model || ''}`} {it.price ? `- ₹${it.price.toLocaleString()}` : ''}
                   </option>
                 ))}
-                <option value="Hyundai Creta">Hyundai Creta</option>
-                <option value="Tata Nexon">Tata Nexon</option>
-                <option value="Kia Seltos">Kia Seltos</option>
-                <option value="Honda City">Honda City</option>
-                <option value="Maruti Suzuki Swift">Maruti Suzuki Swift</option>
-                <option value="Mahindra Thar">Mahindra Thar</option>
               </select>
+            ) : (
+              <input 
+                className="premium-input" 
+                placeholder={`e.g. Preferred ${labels.item?.toLowerCase() || 'item'}`}
+                value={interestedItem}
+                onChange={e => setInterestedItem(e.target.value)}
+              />
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
-                  Max Budget (₹)
+                  Target Budget / Value (₹)
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <input 
-                    type="number" 
-                    className="premium-input" 
-                    placeholder="e.g. 1000000" 
-                    value={budgetMax} 
-                    onChange={e => setBudgetMax(e.target.value)} 
-                    style={{ paddingLeft: '2.2rem' }}
-                  />
-                  <IndianRupee size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)' }} />
-                </div>
+                <input 
+                  type="number" 
+                  className="premium-input" 
+                  placeholder="e.g. 1000000" 
+                  value={budgetMax} 
+                  onChange={e => setBudgetMax(e.target.value)} 
+                />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
-                  Lead Source
+                  Source Channel
                 </label>
                 <select className="premium-input" value={source} onChange={e => setSource(e.target.value)}>
                   <option>Walk-in</option>
-                  <option>Showroom Visit</option>
-                  <option>Website Inquiry</option>
-                  <option>WhatsApp</option>
+                  <option>Website Enquiry</option>
                   <option>Phone Call</option>
-                  <option>Facebook / Instagram</option>
-                  <option>Google Ads</option>
+                  <option>WhatsApp</option>
+                  <option>Social Media</option>
                   <option>Referral</option>
                 </select>
               </div>
@@ -257,7 +259,7 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
           {/* Section 3: Priority Selector Pills */}
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-              Buyer Urgency / Priority
+              Priority / Urgency
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
               {priorityOptions.map(p => {
@@ -289,11 +291,11 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
             </div>
           </div>
 
-          {/* Section 4: Timeline & Assigned Agent */}
+          {/* Section 4: Timeline & Assigned Agent (Dynamic from DB!) */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
-                Buying Timeline
+                Timeline
               </label>
               <select className="premium-input" value={timeline} onChange={e => setTimeline(e.target.value)}>
                 {timelineOptions.map(t => (
@@ -303,11 +305,16 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
-                Assign Sales Executive
+                Assigned Team Member
               </label>
               <select className="premium-input" value={assignedTo} onChange={e => setAssignedTo(e.target.value)}>
-                <option value="Amit Sharma">Amit Sharma</option>
-                <option value="Raj Malhotra">Raj Malhotra</option>
+                {users && users.length > 0 ? (
+                  users.map(u => (
+                    <option key={u._id} value={u.name}>{u.name} ({u.role})</option>
+                  ))
+                ) : (
+                  <option value="Amit Sharma">Amit Sharma (Admin)</option>
+                )}
               </select>
             </div>
           </div>
@@ -326,7 +333,7 @@ function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
               disabled={loading} 
               className="premium-btn"
             >
-              {loading ? 'Adding Enquiry...' : '+ Create Lead'}
+              {loading ? 'Saving...' : `+ Create ${labels.lead || 'Lead'}`}
             </button>
           </div>
         </form>

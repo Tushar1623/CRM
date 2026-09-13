@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, CarFront } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Package } from 'lucide-react';
 import api from '../api';
+import { useBusiness } from '../context/BusinessContext';
 
 function Inventory() {
-  const [vehicles, setVehicles] = useState([]);
+  const { labels, business } = useBusiness();
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -13,23 +15,30 @@ function Inventory() {
   const [editId, setEditId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState('');
+  const [price, setPrice] = useState('');
+  const [status, setStatus] = useState('Available');
+  const [description, setDescription] = useState('');
+
+  // Automotive specifics (if used_car)
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
-  const [year, setYear] = useState('2021');
+  const [year, setYear] = useState('2022');
   const [fuel, setFuel] = useState('Petrol');
   const [transmission, setTransmission] = useState('Manual');
-  const [kmDriven, setKmDriven] = useState('35000');
-  const [price, setPrice] = useState('750000');
-  const [status, setStatus] = useState('Available');
+  const [kmDriven, setKmDriven] = useState('30000');
 
-  const fetchVehicles = () => {
+  const isAutomotive = business.business_type === 'used_car';
+
+  const fetchItems = () => {
     setLoading(true);
-    let url = `/api/vehicles?status=${statusFilter}`;
+    let url = `/api/items?status=${statusFilter}`;
     if (search) url += `&search=${encodeURIComponent(search)}`;
 
     api(url)
       .then(data => { 
-        setVehicles(Array.isArray(data) ? data : []); 
+        setItems(Array.isArray(data) ? data : []); 
         setLoading(false); 
       })
       .catch(err => { 
@@ -39,88 +48,97 @@ function Inventory() {
   };
 
   useEffect(() => { 
-    fetchVehicles(); 
-  }, [search, statusFilter]);
+    fetchItems(); 
+  }, [search, statusFilter, business.business_type]);
 
   const resetForm = () => {
+    setName('');
+    setCategory('');
+    setPrice('');
+    setStatus('Available');
+    setDescription('');
     setBrand(''); 
     setModel(''); 
-    setYear('2021'); 
+    setYear('2022'); 
     setFuel('Petrol');
     setTransmission('Manual');
-    setKmDriven('35000');
-    setPrice('750000'); 
-    setStatus('Available');
+    setKmDriven('30000');
     setIsEditing(false); 
     setEditId(null); 
     setShowForm(false);
   };
 
-  const handleSaveCar = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
+    const finalName = isAutomotive ? `${brand} ${model}`.trim() : name;
     const payload = { 
-      brand, 
-      model, 
-      year: Number(year), 
+      name: finalName,
+      category: category || (isAutomotive ? 'Used Car' : 'General'),
+      price: Number(price),
+      selling_price: Number(price),
+      status,
+      description,
+      brand,
+      model,
+      year: Number(year),
       fuel,
       transmission,
-      km_driven: Number(kmDriven),
-      selling_price: Number(price), 
-      status 
+      km_driven: Number(kmDriven)
     };
 
     try {
       if (isEditing) {
-        await api.put(`/api/vehicles/${editId}`, payload);
+        await api.put(`/api/items/${editId}`, payload);
       } else {
-        await api.post('/api/vehicles', payload);
+        await api.post('/api/items', payload);
       }
       resetForm(); 
-      fetchVehicles();
+      fetchItems();
       window.dispatchEvent(new CustomEvent('crm-toast', { 
-        detail: isEditing ? `${payload.brand} ${payload.model} updated!` : `${payload.brand} ${payload.model} added to stock!` 
+        detail: isEditing ? `${finalName} updated!` : `${finalName} added to catalog!` 
       }));
     } catch (err) {
-      alert('Error saving vehicle: ' + err.message);
+      alert('Error saving item: ' + err.message);
     }
   };
 
-  const handleEditClick = (v) => {
+  const handleEditClick = (it) => {
     setIsEditing(true); 
-    setEditId(v._id); 
+    setEditId(it._id); 
     setShowForm(true);
-    setBrand(v.brand); 
-    setModel(v.model); 
-    setYear(v.year); 
-    setPrice(v.selling_price || v.asking_price || ''); 
-    setFuel(v.fuel || 'Petrol');
-    setTransmission(v.transmission || 'Manual');
-    setKmDriven(v.km_driven || 30000);
-    setStatus(v.status || 'Available');
+    setName(it.name || '');
+    setCategory(it.category || '');
+    setPrice(it.price || it.selling_price || '');
+    setStatus(it.status || 'Available');
+    setDescription(it.description || '');
+    setBrand(it.brand || ''); 
+    setModel(it.model || ''); 
+    setYear(it.year || 2022); 
+    setFuel(it.fuel || 'Petrol');
+    setTransmission(it.transmission || 'Manual');
+    setKmDriven(it.km_driven || 30000);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to remove this vehicle from inventory?')) {
+    if (window.confirm(`Are you sure you want to delete this ${labels.item?.toLowerCase() || 'item'}?`)) {
       try {
-        await api.delete(`/api/vehicles/${id}`);
-        fetchVehicles();
-        window.dispatchEvent(new CustomEvent('crm-toast', { detail: 'Vehicle removed from inventory.' }));
+        await api.delete(`/api/items/${id}`);
+        fetchItems();
+        window.dispatchEvent(new CustomEvent('crm-toast', { detail: `${labels.item || 'Item'} deleted.` }));
       } catch (err) {
-        alert('Error removing vehicle: ' + err.message);
+        alert('Error deleting: ' + err.message);
       }
     }
   };
 
-  const getStatusBadge = (status) => {
-    const s = (status || '').toLowerCase();
-    switch (s) {
+  const getStatusBadge = (s) => {
+    const st = (s || '').toLowerCase();
+    switch (st) {
       case 'available': return 'badge-success';
       case 'sold': return 'badge-warning';
       case 'reserved':
       case 'booked': return 'badge-primary';
-      case 'under_inspection':
-      case 'under_repair': return 'badge-warning';
-      default: return 'badge-danger';
+      default: return 'badge-warning';
     }
   };
 
@@ -128,17 +146,19 @@ function Inventory() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: '0 0 0.25rem 0' }}>Vehicle Inventory</h2>
-          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>Manage your dealership showroom cars, pricing, and stock status.</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: '0 0 0.25rem 0' }}>{labels.item_plural || 'Inventory & Catalog'}</h2>
+          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>
+            Manage {labels.item_plural?.toLowerCase() || 'inventory'}, pricing, and current status.
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative' }}>
             <input 
-              placeholder="Search make, model, stock ID..." 
+              placeholder={`Search ${labels.item_plural?.toLowerCase() || 'items'}...`}
               value={search} 
               onChange={e => setSearch(e.target.value)} 
               className="premium-input" 
-              style={{ width: '250px', paddingLeft: '2.2rem' }}
+              style={{ width: '240px', paddingLeft: '2.2rem' }}
             />
             <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)' }} />
           </div>
@@ -156,7 +176,7 @@ function Inventory() {
           </select>
 
           <button onClick={() => setShowForm(!showForm)} className="premium-btn">
-            <Plus size={16} /> Add Vehicle
+            <Plus size={16} /> Add {labels.item || 'Item'}
           </button>
         </div>
       </div>
@@ -164,56 +184,66 @@ function Inventory() {
       {showForm && (
         <div className="glass-panel" style={{ padding: '1.75rem', marginBottom: '2rem' }}>
           <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem', fontWeight: '700' }}>
-            {isEditing ? 'Edit Vehicle Details' : 'Add Vehicle to Inventory'}
+            {isEditing ? `Edit ${labels.item || 'Item'}` : `Add New ${labels.item || 'Item'}`}
           </h3>
-          <form onSubmit={handleSaveCar} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div style={{ flex: '1 1 170px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Brand / Make *</label>
-              <input required placeholder="e.g. Hyundai, Honda, Tata" value={brand} onChange={e => setBrand(e.target.value)} className="premium-input" />
-            </div>
-            <div style={{ flex: '1 1 170px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Model & Variant *</label>
-              <input required placeholder="e.g. Creta SX, City VX" value={model} onChange={e => setModel(e.target.value)} className="premium-input" />
-            </div>
-            <div style={{ flex: '1 1 100px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Year *</label>
-              <input required type="number" placeholder="2021" value={year} onChange={e => setYear(e.target.value)} className="premium-input" />
-            </div>
-            <div style={{ flex: '1 1 110px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Fuel</label>
-              <select value={fuel} onChange={e => setFuel(e.target.value)} className="premium-input">
-                <option>Petrol</option>
-                <option>Diesel</option>
-                <option>CNG</option>
-                <option>Electric</option>
-              </select>
-            </div>
-            <div style={{ flex: '1 1 120px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Transmission</label>
-              <select value={transmission} onChange={e => setTransmission(e.target.value)} className="premium-input">
-                <option>Manual</option>
-                <option>Automatic</option>
-              </select>
-            </div>
-            <div style={{ flex: '1 1 120px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>KM Driven</label>
-              <input type="number" placeholder="35000" value={kmDriven} onChange={e => setKmDriven(e.target.value)} className="premium-input" />
-            </div>
-            <div style={{ flex: '1 1 140px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Selling Price (₹) *</label>
+          <form onSubmit={handleSave} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            {isAutomotive ? (
+              <>
+                <div style={{ flex: '1 1 150px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Brand / Make *</label>
+                  <input required placeholder="e.g. Hyundai, Honda" value={brand} onChange={e => setBrand(e.target.value)} className="premium-input" />
+                </div>
+                <div style={{ flex: '1 1 150px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Model & Variant *</label>
+                  <input required placeholder="e.g. Creta SX, City ZX" value={model} onChange={e => setModel(e.target.value)} className="premium-input" />
+                </div>
+                <div style={{ flex: '1 1 90px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Year</label>
+                  <input type="number" value={year} onChange={e => setYear(e.target.value)} className="premium-input" />
+                </div>
+                <div style={{ flex: '1 1 110px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Fuel</label>
+                  <select value={fuel} onChange={e => setFuel(e.target.value)} className="premium-input">
+                    <option>Petrol</option><option>Diesel</option><option>CNG</option><option>Electric</option>
+                  </select>
+                </div>
+                <div style={{ flex: '1 1 110px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Transmission</label>
+                  <select value={transmission} onChange={e => setTransmission(e.target.value)} className="premium-input">
+                    <option>Manual</option><option>Automatic</option>
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ flex: '2 1 240px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>{labels.item || 'Item'} Title / Name *</label>
+                  <input required placeholder={`e.g. Luxury 3BHK Apartment, React & Node Mastery, SEO Package...`} value={name} onChange={e => setName(e.target.value)} className="premium-input" />
+                </div>
+                <div style={{ flex: '1 1 150px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Category / Type</label>
+                  <input placeholder="e.g. Residential, Certification, Service" value={category} onChange={e => setCategory(e.target.value)} className="premium-input" />
+                </div>
+              </>
+            )}
+
+            <div style={{ flex: '1 1 130px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Price / Value (₹) *</label>
               <input required type="number" placeholder="Price in ₹" value={price} onChange={e => setPrice(e.target.value)} className="premium-input" />
             </div>
+
             <div style={{ flex: '1 1 120px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Stock Status</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Status</label>
               <select value={status} onChange={e => setStatus(e.target.value)} className="premium-input">
                 <option>Available</option>
                 <option>Reserved</option>
                 <option>Sold</option>
               </select>
             </div>
+
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
               <button type="submit" className="premium-btn">
-                {isEditing ? 'Save Changes' : 'Add Vehicle'}
+                {isEditing ? 'Save Changes' : `Add ${labels.item || 'Item'}`}
               </button>
               <button type="button" onClick={resetForm} className="outline-btn">
                 Cancel
@@ -225,69 +255,69 @@ function Inventory() {
 
       <div className="glass-panel" style={{ overflow: 'hidden' }}>
         {loading ? (
-          <p style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading inventory...</p>
+          <p style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading {labels.item_plural?.toLowerCase() || 'catalog'}...</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table className="premium-table">
               <thead>
                 <tr>
-                  <th>Vehicle</th>
-                  <th>Specs</th>
-                  <th>Selling Price</th>
+                  <th>{labels.item || 'Item'}</th>
+                  <th>Specs / Details</th>
+                  <th>Price / Value</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {vehicles.map(v => (
-                  <tr key={v._id}>
+                {items.map(it => (
+                  <tr key={it._id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
-                          <CarFront size={20} />
+                          <Package size={20} />
                         </div>
                         <div>
-                          <strong style={{ fontSize: '0.95rem' }}>{v.brand} {v.model}</strong>
+                          <strong style={{ fontSize: '0.95rem' }}>{it.name || `${it.brand || ''} ${it.model || ''}`}</strong>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            Stock ID: {v.stock_id} • {v.year}
+                            ID: {it.code || it.stock_id || 'ID'} {it.year ? `• ${it.year}` : ''}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <span style={{ fontSize: '0.85rem' }}>{v.fuel || 'Petrol'} • {v.transmission || 'Manual'}</span>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{v.km_driven ? `${v.km_driven.toLocaleString()} km` : '35,000 km'}</div>
+                      <span style={{ fontSize: '0.85rem' }}>{it.category || (it.fuel ? `${it.fuel} • ${it.transmission}` : 'Standard')}</span>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{it.km_driven ? `${it.km_driven.toLocaleString()} km` : (it.description || '')}</div>
                     </td>
                     <td>
                       <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                        ₹{(v.selling_price || v.asking_price) ? (v.selling_price || v.asking_price).toLocaleString() : 'N/A'}
+                        ₹{(it.price || it.selling_price) ? (it.price || it.selling_price).toLocaleString() : 'N/A'}
                       </strong>
                     </td>
                     <td>
-                      <span className={`status-badge ${getStatusBadge(v.status)}`}>
-                        {v.status ? v.status.replace(/_/g, ' ').toUpperCase() : 'AVAILABLE'}
+                      <span className={`status-badge ${getStatusBadge(it.status)}`}>
+                        {(it.status || 'Available').toUpperCase()}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                        <button onClick={() => handleEditClick(v)} className="action-icon-btn" title="Edit">
+                        <button onClick={() => handleEditClick(it)} className="action-icon-btn" title="Edit">
                           <Edit2 size={14} />
                         </button>
-                        <button onClick={() => handleDelete(v._id)} className="action-icon-btn" style={{ color: 'var(--danger)' }} title="Delete">
+                        <button onClick={() => handleDelete(it._id)} className="action-icon-btn" style={{ color: 'var(--danger)' }} title="Delete">
                           <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
                   </tr>
                 ))}
-                {vehicles.length === 0 && (
+                {items.length === 0 && (
                   <tr>
                     <td colSpan="5" style={{ padding: '3.5rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                        <CarFront size={36} color="var(--text-muted)" />
-                        <p style={{ margin: 0, fontWeight: '500' }}>No vehicles in inventory right now.</p>
+                        <Package size={36} color="var(--text-muted)" />
+                        <p style={{ margin: 0, fontWeight: '500' }}>No {labels.item_plural?.toLowerCase() || 'items'} in catalog right now.</p>
                         <button onClick={() => setShowForm(true)} className="premium-btn" style={{ marginTop: '0.5rem' }}>
-                          <Plus size={15} /> Add First Vehicle
+                          <Plus size={15} /> Add First {labels.item || 'Item'}
                         </button>
                       </div>
                     </td>

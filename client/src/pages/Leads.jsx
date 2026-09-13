@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Phone, MessageCircle, LayoutList, Kanban, CarFront, User, ChevronRight } from 'lucide-react';
+import { Plus, Search, Phone, MessageCircle, LayoutList, Kanban, ChevronRight } from 'lucide-react';
 import AddLeadModal from '../components/AddLeadModal';
-import { api } from '../api';
+import api from '../api';
+import { useBusiness } from '../context/BusinessContext';
 
 const STAGES = [
   { key: 'new', label: 'New Lead' },
   { key: 'contacted', label: 'Contacted' },
   { key: 'interested', label: 'Interested' },
-  { key: 'test_drive', label: 'Test Drive' },
+  { key: 'test_drive', label: 'Appointment / Visit' },
   { key: 'negotiation', label: 'Negotiation' },
   { key: 'booked', label: 'Booking' },
-  { key: 'won', label: 'Sold / Won' }
+  { key: 'won', label: 'Closed / Won' }
 ];
 
 function Leads() {
+  const { labels } = useBusiness();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -48,7 +50,7 @@ function Leads() {
       });
       fetchLeads();
       const stageName = STAGES.find(s => s.key === newStageKey)?.label || newStageKey;
-      window.dispatchEvent(new CustomEvent('crm-toast', { detail: `Lead moved to ${stageName}` }));
+      window.dispatchEvent(new CustomEvent('crm-toast', { detail: `${labels.lead || 'Lead'} moved to ${stageName}` }));
     } catch (err) {
       console.error('Failed to change stage:', err);
     }
@@ -74,8 +76,12 @@ function Leads() {
       {/* Header & Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: '0 0 0.25rem 0' }}>Leads & Sales Pipeline</h2>
-          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>Track, manage, and advance customer buying opportunities.</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: '0 0 0.25rem 0' }}>
+            {labels.lead ? `${labels.lead}s` : 'Leads'} & Sales Pipeline
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>
+            Track, manage, and advance customer buying opportunities.
+          </p>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -121,7 +127,7 @@ function Leads() {
 
           <div style={{ position: 'relative' }}>
             <input 
-              placeholder="Search leads, cars, phone..."
+              placeholder={`Search ${labels.lead?.toLowerCase() || 'leads'}, ${labels.item?.toLowerCase() || 'items'}...`}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="premium-input"
@@ -144,13 +150,13 @@ function Leads() {
           )}
 
           <button onClick={() => setShowModal(true)} className="premium-btn">
-            <Plus size={16} /> Add Lead
+            <Plus size={16} /> Add {labels.lead || 'Lead'}
           </button>
         </div>
       </div>
 
       {loading ? (
-        <p style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading leads...</p>
+        <p style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading {labels.lead?.toLowerCase() || 'leads'}...</p>
       ) : viewMode === 'list' ? (
         /* ================= LIST VIEW ================= */
         <div className="glass-panel" style={{ overflow: 'hidden' }}>
@@ -158,8 +164,8 @@ function Leads() {
             <table className="premium-table">
               <thead>
                 <tr>
-                  <th>Customer</th>
-                  <th>Vehicle Requirement</th>
+                  <th>{labels.customer || 'Customer'}</th>
+                  <th>Requirement ({labels.item || 'Item'})</th>
                   <th>Assigned Agent</th>
                   <th>Stage</th>
                   <th>Priority</th>
@@ -170,23 +176,23 @@ function Leads() {
               <tbody>
                 {leads.map(l => {
                   const cust = l.customer_id;
-                  const phoneClean = cust?.phone ? cust.phone.replace(/[^0-9]/g, '') : '';
+                  const phoneClean = (cust?.phone || l.customer_phone) ? String(cust?.phone || l.customer_phone).replace(/[^0-9]/g, '').slice(-10) : '';
                   const stageObj = STAGES.find(s => s.key === l.status?.toLowerCase()) || { label: l.status || 'New Lead' };
 
                   return (
                     <tr key={l._id}>
                       <td>
-                        <strong style={{ fontSize: '0.95rem', fontWeight: '600' }}>{cust?.name || 'Unknown'}</strong>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{cust?.phone}</div>
+                        <strong style={{ fontSize: '0.95rem', fontWeight: '600' }}>{cust?.name || l.customer_name || 'Client'}</strong>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{cust?.phone || l.customer_phone}</div>
                       </td>
                       <td>
-                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{l.interested_car || 'Open Requirement'}</span>
+                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{l.interested_car || l.title || 'Requirement'}</span>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                           Budget: {l.budget_max ? `₹${(l.budget_max / 100000).toFixed(1)}L` : 'Open'}
                         </div>
                       </td>
                       <td>
-                        <span style={{ fontSize: '0.875rem' }}>{l.assigned_to?.name || l.assigned_to_name || 'Sales Executive'}</span>
+                        <span style={{ fontSize: '0.875rem' }}>{l.assigned_to?.name || l.assigned_to_name || 'Executive'}</span>
                       </td>
                       <td>
                         <span className="status-badge badge-primary">{stageObj.label}</span>
@@ -201,9 +207,9 @@ function Leads() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
-                          {cust?.phone && (
+                          {phoneClean && (
                             <>
-                              <a href={`tel:${cust.phone}`} className="action-icon-btn" title="Call">
+                              <a href={`tel:${phoneClean}`} className="action-icon-btn" title="Call">
                                 <Phone size={14} />
                               </a>
                               <a href={`https://wa.me/91${phoneClean}`} target="_blank" rel="noreferrer" className="action-icon-btn whatsapp" title="WhatsApp">
@@ -222,7 +228,7 @@ function Leads() {
                 {leads.length === 0 && (
                   <tr>
                     <td colSpan="7" style={{ padding: '3.5rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                      No leads found. Click "+ Add Lead" to record an enquiry.
+                      No records found. Click "+ Add {labels.lead || 'Lead'}" to record an enquiry.
                     </td>
                   </tr>
                 )}
@@ -234,7 +240,7 @@ function Leads() {
         /* ================= BOARD / KANBAN VIEW ================= */
         <div style={{ display: 'flex', gap: '1.25rem', overflowX: 'auto', paddingBottom: '1.5rem' }}>
           {STAGES.map((stageObj, stageIdx) => {
-            const stageLeads = leads.filter(l => l.status === stageObj.key || l.status === stageObj.label || (stageObj.key === 'test_drive' && l.status === 'Test Drive Scheduled'));
+            const stageLeads = leads.filter(l => l.status === stageObj.key || l.status === stageObj.label || (stageObj.key === 'test_drive' && (l.status === 'Test Drive Scheduled' || l.status === 'Appointment Scheduled')));
             const isWon = stageObj.key === 'won';
             const hasNextStage = stageIdx < STAGES.length - 1;
 
@@ -266,7 +272,7 @@ function Leads() {
                     <div key={l._id} className="hover-lift" style={{ backgroundColor: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                         <Link to={`/leads/${l._id}`} style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: '600', fontSize: '0.95rem' }}>
-                          {l.customer_id?.name || 'Customer'}
+                          {l.customer_id?.name || l.customer_name || 'Prospect'}
                         </Link>
                         <span className={`priority-pill priority-${l.priority ? l.priority.toLowerCase() : 'warm'}`}>
                           {l.priority ? l.priority.toUpperCase() : 'WARM'}
@@ -274,12 +280,12 @@ function Leads() {
                       </div>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.85rem' }}>
-                        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <CarFront size={13} color="var(--accent-primary)" /> {l.interested_car || 'Vehicle'} 
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                          {l.interested_car || l.title || 'Requirement'} 
                           {l.budget_max ? ` • ₹${(l.budget_max / 100000).toFixed(1)}L` : ''}
                         </p>
-                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <User size={13} /> {l.assigned_to?.name || l.assigned_to_name || 'Sales Executive'}
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          Agent: {l.assigned_to?.name || l.assigned_to_name || 'Sales Executive'}
                         </p>
                       </div>
 
@@ -311,7 +317,7 @@ function Leads() {
                   ))}
                   {stageLeads.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem', border: '1px dashed var(--border-color)', borderRadius: '6px' }}>
-                      No leads in this stage
+                      No {labels.lead?.toLowerCase() || 'leads'} in this stage
                     </div>
                   )}
                 </div>

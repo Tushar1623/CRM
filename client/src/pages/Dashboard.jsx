@@ -2,14 +2,16 @@ import { useState, useEffect, useContext } from 'react';
 import { Phone, Clock, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useBusiness } from '../context/BusinessContext';
 import api from '../api';
 
 function Dashboard({ onOpenAddLead }) {
   const [stats, setStats] = useState(null);
   const [activities, setActivities] = useState([]);
   const [actions, setActions] = useState([]);
-  const [testDrives, setTestDrives] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const { user } = useContext(AuthContext);
+  const { labels, business } = useBusiness();
 
   const fetchDashboardData = () => {
     api('/api/stats')
@@ -24,14 +26,14 @@ function Dashboard({ onOpenAddLead }) {
       .then(data => setActions(Array.isArray(data) ? data : []))
       .catch(console.error);
 
-    api('/api/test-drives')
-      .then(data => setTestDrives(Array.isArray(data) ? data : []))
+    api('/api/appointments')
+      .then(data => setAppointments(Array.isArray(data) ? data : []))
       .catch(console.error);
   };
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [business.business_type]);
 
   const pipeline = stats?.pipelineCounts || {
     New: 0, Contacted: 0, Interested: 0, 'Test drive': 0, Negotiation: 0, Booked: 0, Won: 0
@@ -48,15 +50,15 @@ function Dashboard({ onOpenAddLead }) {
             Here's your sales pulse.
           </h2>
           <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.92rem' }}>
-            {totalLeadsCount > 0 ? `Welcome back, ${user?.name?.split(' ')[0] || 'Amit'}. Here is your dealership status.` : 'Your CRM is ready for its first customer enquiry.'}
+            Welcome back, {user?.name?.split(' ')[0] || 'Amit'}. Here is your {business.name || 'business'} status.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <Link to="/leads" className="outline-btn">
-            View All Leads <span>→</span>
+            View All {labels.lead ? `${labels.lead}s` : 'Leads'} <span>→</span>
           </Link>
           <button onClick={onOpenAddLead} className="premium-btn">
-            + Add Lead
+            + Add {labels.lead || 'Lead'}
           </button>
         </div>
       </div>
@@ -66,30 +68,30 @@ function Dashboard({ onOpenAddLead }) {
         <MetricCard 
           icon="◎" 
           iconColor="blue" 
-          title="Total Leads" 
+          title={`Total ${labels.lead ? `${labels.lead}s` : 'Leads'}`}
           value={stats ? stats.totalLeads : 0} 
-          subtitle={stats?.totalLeads > 0 ? `${stats.totalLeads} active leads` : 'No leads yet'} 
+          subtitle={stats?.totalLeads > 0 ? `${stats.totalLeads} active pipeline opportunities` : 'No leads yet'} 
         />
         <MetricCard 
           icon="◷" 
           iconColor="amber" 
           title="Follow-ups Today" 
           value={stats ? stats.followupsToday : 0} 
-          subtitle={stats?.followupsToday > 0 ? `${stats.followupsToday} calls/visits due` : 'Nothing due today'} 
+          subtitle={stats?.followupsToday > 0 ? `${stats.followupsToday} calls/tasks due` : 'Nothing due today'} 
         />
         <MetricCard 
           icon="▣" 
           iconColor="orange" 
-          title="Test Drives Today" 
+          title={`${labels.appointment_plural || 'Appointments'} Today`}
           value={stats ? stats.testDrivesToday : 0} 
           subtitle={stats?.testDrivesToday > 0 ? `${stats.testDrivesToday} scheduled` : 'Nothing scheduled'} 
         />
         <MetricCard 
           icon="₹" 
           iconColor="green" 
-          title="Monthly Sales" 
+          title="Monthly Volume" 
           value={stats && stats.monthlySales > 0 ? `₹${(stats.monthlySales / 100000).toFixed(2)}L` : '₹0'} 
-          subtitle={stats && stats.monthlySales > 0 ? 'Delivered & booked' : 'No sales recorded'} 
+          subtitle={stats && stats.monthlySales > 0 ? 'Closed & booked' : 'No deals closed'} 
         />
       </div>
 
@@ -116,7 +118,7 @@ function Dashboard({ onOpenAddLead }) {
                 <p style={{ margin: '0 0 0.4rem 0', fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.95rem' }}>Nothing due today</p>
                 <p style={{ margin: 0, fontSize: '0.85rem' }}>Your CRM is ready for its next customer enquiry.</p>
                 <button onClick={onOpenAddLead} className="outline-btn" style={{ marginTop: '1rem' }}>
-                  + Create First Lead
+                  + Create First {labels.lead || 'Lead'}
                 </button>
               </div>
             ) : (
@@ -150,31 +152,31 @@ function Dashboard({ onOpenAddLead }) {
             )}
           </div>
 
-          {/* Upcoming Scheduled Test Drives */}
+          {/* Upcoming Scheduled Appointments */}
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
               <div>
                 <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SCHEDULE</p>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>Upcoming Test Drives</h3>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>Upcoming {labels.appointment_plural || 'Appointments'}</h3>
               </div>
               <Link to="/test-drives" style={{ color: 'var(--accent-primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '600' }}>
-                Schedule →
+                Calendar →
               </Link>
             </div>
 
-            {testDrives.length === 0 ? (
+            {appointments.length === 0 ? (
               <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <strong style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>NO APPOINTMENTS</strong>
-                <span style={{ fontSize: '0.85rem' }}>Schedule a test drive from a lead or the calendar.</span>
+                <span style={{ fontSize: '0.85rem' }}>Schedule an appointment from a lead or the calendar.</span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {testDrives.slice(0, 3).map(td => (
+                {appointments.slice(0, 3).map(td => (
                   <div key={td._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg-dark)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                     <div>
-                      <strong style={{ fontSize: '0.9rem' }}>{td.customer_id?.name || 'Customer'}</strong>
+                      <strong style={{ fontSize: '0.9rem' }}>{td.customer_id?.name || td.customer_name || 'Client'}</strong>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        {td.vehicle_id?.brand} {td.vehicle_id?.model} • {td.time}
+                        {td.item_id?.name || `${td.item_id?.brand || ''} ${td.item_id?.model || ''}` || td.car_name || td.item_name} • {td.time}
                       </div>
                     </div>
                     <span className={`status-badge ${td.status === 'Completed' ? 'badge-success' : 'badge-primary'}`}>
@@ -199,7 +201,7 @@ function Dashboard({ onOpenAddLead }) {
                 <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>Sales Pipeline</h3>
               </div>
               <Link to="/leads" style={{ color: 'var(--accent-primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '600' }}>
-                View leads →
+                View board →
               </Link>
             </div>
 
@@ -207,15 +209,15 @@ function Dashboard({ onOpenAddLead }) {
               <PipelineBar label="New" count={pipeline.New || 0} total={totalLeadsCount} color="#3b82f6" />
               <PipelineBar label="Contacted" count={pipeline.Contacted || 0} total={totalLeadsCount} color="#6366f1" />
               <PipelineBar label="Interested" count={pipeline.Interested || 0} total={totalLeadsCount} color="#06b6d4" />
-              <PipelineBar label="Test drive" count={pipeline['Test drive'] || 0} total={totalLeadsCount} color="#f59e0b" />
+              <PipelineBar label={labels.appointment || 'Appointment'} count={pipeline['Test drive'] || 0} total={totalLeadsCount} color="#f59e0b" />
               <PipelineBar label="Negotiation" count={pipeline.Negotiation || 0} total={totalLeadsCount} color="#ec4899" />
-              <PipelineBar label="Won" count={pipeline.Won || 0} total={totalLeadsCount} color="#10b981" />
+              <PipelineBar label="Won / Closed" count={pipeline.Won || 0} total={totalLeadsCount} color="#10b981" />
             </div>
 
             <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block' }}>Conversion rate</span>
-                <small style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>from all leads this month</small>
+                <small style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>from all active enquiries</small>
               </div>
               <strong style={{ fontSize: '1.2rem', color: totalLeadsCount > 0 ? '#10b981' : 'var(--text-secondary)' }}>
                 {stats?.conversionRate || '—'}
