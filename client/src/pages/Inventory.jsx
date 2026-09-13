@@ -114,10 +114,14 @@ function Inventory() {
   };
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case 'Available': return 'badge-success';
-      case 'Sold': return 'badge-warning';
-      case 'Reserved': return 'badge-primary';
+    const s = (status || '').toLowerCase();
+    switch (s) {
+      case 'available': return 'badge-success';
+      case 'sold': return 'badge-warning';
+      case 'reserved':
+      case 'booked': return 'badge-primary';
+      case 'under_inspection':
+      case 'under_repair': return 'badge-warning';
       default: return 'badge-danger';
     }
   };
@@ -263,7 +267,7 @@ function Inventory() {
                     </td>
                     <td>
                       <span className={`status-badge ${getStatusBadge(v.status)}`}>
-                        {v.status || 'Available'}
+                        {v.status ? v.status.replace(/_/g, ' ').toUpperCase() : 'AVAILABLE'}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>

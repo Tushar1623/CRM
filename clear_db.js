@@ -35,10 +35,10 @@ async function clearDatabase() {
       await User.create({
         name: 'Amit Sharma',
         email: 'admin@motorwise.com',
-        password: hashedPassword,
-        role: 'Admin',
+        password_hash: hashedPassword,
+        role: 'admin',
         phone: '9876543210',
-        status: 'Active'
+        status: 'active'
       });
       console.log('Admin user ensured: admin@motorwise.com / password123');
     } else {

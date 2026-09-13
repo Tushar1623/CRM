@@ -3,14 +3,15 @@ const mongoose = require('mongoose');
 const dealSchema = new mongoose.Schema({
   deal_number: { 
     type: String, 
+    required: true,
     unique: true, 
-    sparse: true, 
     uppercase: true, 
     index: true 
   },
   lead_id: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Lead', 
+    required: true,
     index: true 
   },
   customer_id: { 
@@ -27,21 +28,21 @@ const dealSchema = new mongoose.Schema({
   },
   salesperson_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User' 
-  },
-  salesperson_name: { 
-    type: String, 
-    default: 'Amit Sharma' 
+    ref: 'User',
+    required: true,
+    index: true
   },
   asking_price: { 
     type: Number, 
-    min: 0 
+    min: 0,
+    default: 0 
   },
-  negotiated_price: { 
+  customer_offer: { 
     type: Number, 
-    min: 0 
+    min: 0,
+    default: 0 
   },
-  selling_price: { 
+  final_selling_price: { 
     type: Number, 
     required: true, 
     min: 0 
@@ -51,29 +52,34 @@ const dealSchema = new mongoose.Schema({
     default: 0, 
     min: 0 
   },
+  amount_received: { 
+    type: Number, 
+    default: 0, 
+    min: 0 
+  },
   payment_method: { 
     type: String, 
-    enum: ['Cash', 'Bank Transfer / NEFT', 'Cheque', 'UPI', 'Finance / Auto Loan', 'Other'],
-    default: 'UPI'
-  },
-  finance_status: { 
-    type: String, 
-    enum: ['Not Applicable', 'Pending', 'Applied', 'Approved', 'Disbursed', 'Rejected'],
-    default: 'Not Applicable'
+    enum: ['cash', 'bank_transfer', 'cheque', 'upi', 'finance', 'other'],
+    default: 'upi'
   },
   payment_status: { 
     type: String, 
-    enum: ['Pending', 'Partial', 'Completed'], 
-    default: 'Pending',
+    enum: ['pending', 'partial', 'paid', 'refunded'], 
+    default: 'pending',
     index: true 
   },
-  deal_status: { 
+  finance_status: { 
     type: String, 
-    enum: ['Negotiation', 'Booking Pending', 'Booked', 'Payment Pending', 'Payment Completed', 'Delivered', 'Cancelled'],
-    default: 'Booked',
+    enum: ['not_applicable', 'pending', 'applied', 'approved', 'disbursed', 'rejected'],
+    default: 'not_applicable'
+  },
+  status: { 
+    type: String, 
+    enum: ['negotiation', 'booking_pending', 'booked', 'payment_pending', 'payment_completed', 'delivered', 'cancelled'],
+    default: 'booked',
     index: true 
   },
-  deal_date: { 
+  booking_date: { 
     type: Date, 
     default: Date.now, 
     index: true 
@@ -81,17 +87,38 @@ const dealSchema = new mongoose.Schema({
   expected_delivery_date: { 
     type: Date 
   },
-  delivered_date: { 
+  delivered_at: { 
     type: Date 
   },
   notes: { 
-    type: String 
+    type: String,
+    trim: true 
   }
 }, { 
-  timestamps: true 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
-dealSchema.index({ customer_id: 1, deal_date: -1 });
-dealSchema.index({ deal_status: 1, deal_date: -1 });
+// Calculated balance = final_selling_price - amount_received
+dealSchema.virtual('balance').get(function() {
+  return (this.final_selling_price || 0) - (this.amount_received || this.booking_amount || 0);
+});
+
+// Virtual compatibility aliases
+dealSchema.virtual('selling_price')
+  .get(function() { return this.final_selling_price; })
+  .set(function(v) { this.final_selling_price = v; });
+
+dealSchema.virtual('deal_status')
+  .get(function() { return this.status; })
+  .set(function(v) { this.status = v; });
+
+dealSchema.virtual('salesperson_name').get(function() {
+  return this.salesperson_id?.name || 'Sales Executive';
+});
+
+dealSchema.index({ customer_id: 1, booking_date: -1 });
+dealSchema.index({ status: 1, booking_date: -1 });
 
 module.exports = mongoose.model('Deal', dealSchema);

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { normalizePhone } = require('../utils/normalizePhone');
 
 const customerSchema = new mongoose.Schema({
   name: { 
@@ -36,25 +37,34 @@ const customerSchema = new mongoose.Schema({
     type: String, 
     trim: true 
   },
-  source: { 
+  status: { 
     type: String, 
-    default: 'Walk-in' 
+    enum: ['active', 'blacklisted'], 
+    default: 'active',
+    index: true 
   },
   tags: [{ 
     type: String, 
     trim: true 
   }],
-  status: { 
-    type: String, 
-    enum: ['Active', 'Lead', 'Customer', 'Blacklisted'], 
-    default: 'Active',
-    index: true 
-  },
   notes: { 
     type: String 
   }
 }, { 
-  timestamps: true 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Pre-save hook to normalize phone number
+customerSchema.pre('save', function(next) {
+  if (this.phone) {
+    this.phone = normalizePhone(this.phone);
+  }
+  if (this.alternate_phone) {
+    this.alternate_phone = normalizePhone(this.alternate_phone);
+  }
+  next();
 });
 
 // Full-text search index across core customer identifiers

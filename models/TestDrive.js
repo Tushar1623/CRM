@@ -4,6 +4,7 @@ const testDriveSchema = new mongoose.Schema({
   lead_id: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Lead', 
+    required: true, 
     index: true 
   },
   customer_id: { 
@@ -20,43 +21,65 @@ const testDriveSchema = new mongoose.Schema({
   },
   employee_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User' 
+    ref: 'User',
+    required: true,
+    index: true 
   },
-  employee_name: { 
-    type: String, 
-    default: 'Amit Sharma' 
-  },
-  date: { 
+  scheduled_at: { 
     type: Date, 
     required: true, 
     index: true 
   },
-  time: { 
-    type: String, 
-    required: true 
-  },
   location: { 
     type: String, 
-    enum: ['Showroom', 'Customer Home', 'Customer Office', 'Other'], 
+    trim: true,
     default: 'Showroom' 
+  },
+  status: { 
+    type: String, 
+    enum: ['scheduled', 'completed', 'cancelled', 'no_show', 'rescheduled'],
+    default: 'scheduled',
+    index: true 
+  },
+  result: {
+    type: String,
+    enum: ['interested', 'follow_up', 'negotiation', 'not_interested']
   },
   driving_license_no: { 
     type: String, 
     trim: true 
   },
   customer_feedback: { 
-    type: String 
+    type: String,
+    trim: true 
   },
-  status: { 
-    type: String, 
-    enum: ['Scheduled', 'Completed', 'Cancelled', 'No Show', 'Rescheduled'],
-    default: 'Scheduled',
-    index: true 
+  notes: { 
+    type: String,
+    trim: true 
+  },
+  completed_at: { 
+    type: Date 
   }
 }, { 
-  timestamps: true 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
-testDriveSchema.index({ date: 1, status: 1 });
+// Virtuals for UI helpers
+testDriveSchema.virtual('employee_name').get(function() {
+  return this.employee_id?.name || 'Sales Executive';
+});
+
+testDriveSchema.virtual('date').get(function() {
+  return this.scheduled_at;
+});
+
+testDriveSchema.virtual('time').get(function() {
+  if (!this.scheduled_at) return '';
+  return new Date(this.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+});
+
+testDriveSchema.index({ scheduled_at: 1, status: 1 });
 
 module.exports = mongoose.model('TestDrive', testDriveSchema);

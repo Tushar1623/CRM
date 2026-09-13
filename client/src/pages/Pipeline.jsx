@@ -7,12 +7,12 @@ function Pipeline() {
   const [loading, setLoading] = useState(true);
 
   const stages = [
-    'New Lead',
-    'Contacted',
-    'Test Drive Scheduled',
-    'Negotiation',
-    'Booking',
-    'Sold / Won'
+    { key: 'new', label: 'New Lead' },
+    { key: 'contacted', label: 'Contacted' },
+    { key: 'test_drive', label: 'Test Drive' },
+    { key: 'negotiation', label: 'Negotiation' },
+    { key: 'booked', label: 'Booking' },
+    { key: 'won', label: 'Sold / Won' }
   ];
 
   const fetchLeads = () => {
@@ -36,23 +36,24 @@ function Pipeline() {
     return () => window.removeEventListener('crm-data-updated', handleUpdate);
   }, []);
 
-  const handleStageChange = (id, newStage) => {
+  const handleStageChange = (id, newStageKey) => {
     fetch(`http://localhost:3000/api/leads/${id}`, {
       method: 'PUT', 
       headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ status: newStage })
+      body: JSON.stringify({ status: newStageKey })
     }).then(() => {
       fetchLeads();
       window.dispatchEvent(new Event('crm-data-updated'));
-      window.dispatchEvent(new CustomEvent('crm-toast', { detail: `Lead moved to ${newStage}` }));
+      const found = stages.find(s => s.key === newStageKey);
+      window.dispatchEvent(new CustomEvent('crm-toast', { detail: `Lead moved to ${found?.label || newStageKey}` }));
     });
   };
 
   const handleAdvanceStage = (lead) => {
-    const currentIndex = stages.indexOf(lead.status);
+    const currentIndex = stages.findIndex(s => s.key === lead.status || s.label === lead.status);
     if (currentIndex >= 0 && currentIndex < stages.length - 1) {
       const nextStage = stages[currentIndex + 1];
-      handleStageChange(lead._id, nextStage);
+      handleStageChange(lead._id, nextStage.key);
     }
   };
 
@@ -69,14 +70,14 @@ function Pipeline() {
         <p style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>Loading Pipeline...</p>
       ) : (
         <div style={{ display: 'flex', gap: '1.25rem', overflowX: 'auto', flex: 1, paddingBottom: '1.5rem' }}>
-          {stages.map((stage, stageIdx) => {
-            const stageLeads = leads.filter(l => l.status === stage);
-            const isWon = stage === 'Sold / Won';
+          {stages.map((stageObj, stageIdx) => {
+            const stageLeads = leads.filter(l => l.status === stageObj.key || l.status === stageObj.label || (stageObj.key === 'test_drive' && l.status === 'Test Drive Scheduled'));
+            const isWon = stageObj.key === 'won';
             const hasNextStage = stageIdx < stages.length - 1;
             
             return (
               <div 
-                key={stage} 
+                key={stageObj.key} 
                 className="glass-panel" 
                 style={{ 
                   minWidth: '290px', 
@@ -90,7 +91,7 @@ function Pipeline() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
                   <h3 style={{ margin: 0, fontSize: '0.88rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {stage}
+                    {stageObj.label}
                   </h3>
                   <span style={{ backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.15rem 0.55rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
                     {stageLeads.length}
@@ -126,15 +127,15 @@ function Pipeline() {
                           className="premium-input"
                           style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem', background: 'var(--bg-panel)', flex: 1 }}
                         >
-                          {stages.map(s => <option key={s} value={s}>{s}</option>)}
-                          <option value="Lost">Lost</option>
+                          {stages.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                          <option value="lost">Lost</option>
                         </select>
                         {hasNextStage && (
                           <button 
                             onClick={() => handleAdvanceStage(l)}
                             className="premium-btn" 
                             style={{ padding: '0.35rem 0.6rem', fontSize: '0.72rem', whiteSpace: 'nowrap' }}
-                            title={`Advance to ${stages[stageIdx + 1]}`}
+                            title={`Advance to ${stages[stageIdx + 1]?.label}`}
                           >
                             Advance →
                           </button>

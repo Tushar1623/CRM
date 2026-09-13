@@ -1,117 +1,117 @@
 const mongoose = require('mongoose');
 
 const vehicleSchema = new mongoose.Schema({
-  stock_id: { 
-    type: String, 
-    required: true, 
-    unique: true, 
-    uppercase: true, 
-    trim: true, 
-    index: true 
+  stock_id: {
+    type: String,
+    required: true,
+    unique: true,
+    uppercase: true,
+    trim: true,
+    index: true
   },
-  registration_number: { 
-    type: String, 
-    trim: true, 
-    uppercase: true, 
-    index: true 
+  registration_number: {
+    type: String,
+    trim: true,
+    uppercase: true,
+    index: true
   },
-  brand: { 
-    type: String, 
-    required: true, 
-    trim: true, 
-    index: true 
+  brand: {
+    type: String,
+    required: true,
+    trim: true,
+    index: true
   },
-  model: { 
-    type: String, 
-    required: true, 
-    trim: true, 
-    index: true 
+  model: {
+    type: String,
+    required: true,
+    trim: true,
+    index: true
   },
-  variant: { 
-    type: String, 
-    trim: true 
+  variant: {
+    type: String,
+    trim: true
   },
-  year: { 
-    type: Number, 
-    required: true, 
-    min: 2000, 
-    max: 2030, 
-    index: true 
+  year: {
+    type: Number,
+    required: true,
+    min: 2000,
+    max: 2030,
+    index: true
   },
-  registration_year: { 
-    type: Number 
+  registration_year: {
+    type: Number
   },
-  fuel: { 
-    type: String, 
-    enum: ['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid', 'Other'], 
+  fuel: {
+    type: String,
+    enum: ['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid', 'Other'],
     required: true,
     default: 'Petrol'
   },
-  transmission: { 
-    type: String, 
-    enum: ['Manual', 'Automatic'], 
-    default: 'Manual' 
+  transmission: {
+    type: String,
+    enum: ['Manual', 'Automatic'],
+    default: 'Manual'
   },
-  body_type: { 
-    type: String, 
+  body_type: {
+    type: String,
     enum: ['SUV', 'Sedan', 'Hatchback', 'MUV', 'Coupe', 'Other'],
     default: 'SUV'
   },
-  km_driven: { 
-    type: Number, 
-    required: true, 
-    min: 0 
+  km_driven: {
+    type: Number,
+    required: true,
+    min: 0
   },
-  owners: { 
-    type: Number, 
-    default: 1, 
-    min: 1 
+  owners: {
+    type: Number,
+    default: 1,
+    min: 1
   },
-  colour: { 
-    type: String, 
-    trim: true 
+  colour: {
+    type: String,
+    trim: true
   },
-  registration_city: { 
-    type: String, 
-    trim: true 
+  registration_city: {
+    type: String,
+    trim: true
   },
-  insurance_validity: { 
-    type: Date 
+  insurance_validity: {
+    type: Date
   },
-  purchase_price: { 
-    type: Number, 
-    min: 0 
+  purchase_price: {
+    type: Number,
+    min: 0
   },
-  asking_price: { 
-    type: Number, 
-    min: 0 
+  asking_price: {
+    type: Number,
+    min: 0
   },
-  selling_price: { 
-    type: Number, 
-    required: true, 
-    min: 0, 
-    index: true 
+  selling_price: {
+    type: Number,
+    required: true,
+    min: 0,
+    index: true
   },
-  minimum_selling_price: { 
-    type: Number, 
-    min: 0 
+  minimum_selling_price: {
+    type: Number,
+    min: 0
   },
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     enum: ['Available', 'Reserved', 'Test Drive', 'Booked', 'Sold', 'Under Inspection', 'Under Repair'],
     default: 'Available',
-    index: true 
+    index: true
   },
   images: [{
     url: { type: String, required: true },
     category: { type: String, default: 'General' },
     is_primary: { type: Boolean, default: false }
   }],
-  notes: { 
-    type: String 
+  notes: {
+    type: String
   }
-}, { 
-  timestamps: true 
+}, {
+  timestamps: true
 });
 
 // Compound indexes for inventory filtering & search

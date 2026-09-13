@@ -239,13 +239,15 @@ function Dashboard({ onOpenAddLead }) {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 {activities.slice(0, 5).map(act => (
-                  <div key={act.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <div key={act._id || act.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                     <div style={{ marginTop: '0.2rem', color: 'var(--accent-primary)' }}>
                       <Clock size={14} />
                     </div>
                     <div>
-                      <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '500' }}>{act.subject}</p>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{act.date} • {act.type}</span>
+                      <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '500' }}>{act.title || act.subject || act.description}</p>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                        {act.createdAt ? new Date(act.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (act.date || 'Today')} • {(act.activity_type || act.type || 'Activity').replace(/_/g, ' ').toUpperCase()}
+                      </span>
                     </div>
                   </div>
                 ))}

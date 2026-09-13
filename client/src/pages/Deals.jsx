@@ -143,7 +143,7 @@ function Deals() {
         <div className="glass-panel" style={{ padding: '1.25rem' }}>
           <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Cars Delivered</p>
           <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700', color: 'var(--accent-primary)' }}>
-            {deals.filter(d => d.deal_status === 'Delivered').length}
+            {deals.filter(d => (d.status || d.deal_status || '').toLowerCase() === 'delivered').length}
           </h3>
           <small style={{ color: 'var(--text-secondary)' }}>completed customer deliveries</small>
         </div>
@@ -197,22 +197,22 @@ function Deals() {
                     </td>
                     <td>
                       <select 
-                        value={d.deal_status}
+                        value={(d.status || d.deal_status || 'booked').toLowerCase()}
                         onChange={e => handleUpdateStatus(d._id, e.target.value)}
                         className="premium-input"
                         style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', width: 'auto' }}
                       >
-                        <option value="Negotiation">Negotiation</option>
-                        <option value="Booking Pending">Booking Pending</option>
-                        <option value="Booked">Booked</option>
-                        <option value="Delivered">Delivered</option>
-                        <option value="Cancelled">Cancelled</option>
+                        <option value="negotiation">Negotiation</option>
+                        <option value="booking_pending">Booking Pending</option>
+                        <option value="booked">Booked</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
                       </select>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      {d.deal_status !== 'Delivered' && (
+                      {(d.status || d.deal_status || '').toLowerCase() !== 'delivered' && (
                         <button 
-                          onClick={() => handleUpdateStatus(d._id, 'Delivered')}
+                          onClick={() => handleUpdateStatus(d._id, 'delivered')}
                           className="premium-btn" 
                           style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', backgroundColor: '#10b981' }}
                         >

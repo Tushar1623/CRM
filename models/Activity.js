@@ -13,35 +13,58 @@ const activitySchema = new mongoose.Schema({
   },
   user_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User' 
-  },
-  user_name: { 
-    type: String, 
-    default: 'System' 
+    ref: 'User',
+    index: true 
   },
   activity_type: { 
     type: String, 
     enum: [
-      'lead_created', 'lead_assigned', 'stage_changed', 'call_logged', 
-      'whatsapp_sent', 'followup_scheduled', 'followup_completed', 
-      'test_drive_scheduled', 'test_drive_completed', 'deal_created', 
-      'deal_status_changed', 'vehicle_reserved', 'vehicle_sold', 'note_added', 'other'
+      'lead_created', 'lead_assigned', 'stage_changed', 
+      'call_logged', 'whatsapp_opened', 
+      'followup_created', 'followup_completed', 
+      'vehicle_interest_added', 
+      'test_drive_created', 'test_drive_completed', 
+      'deal_created', 'deal_status_changed', 
+      'vehicle_reserved', 'vehicle_sold', 
+      'note_added'
     ],
     required: true,
     index: true
   },
+  title: { 
+    type: String,
+    trim: true 
+  },
   description: { 
     type: String, 
-    required: true 
+    required: true,
+    trim: true 
   },
   metadata: { 
-    type: mongoose.Schema.Types.Mixed 
+    type: mongoose.Schema.Types.Mixed,
+    default: {} 
   }
 }, { 
-  timestamps: true 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// UI compatibility virtuals
+activitySchema.virtual('user_name').get(function() {
+  return this.user_id?.name || 'System';
+});
+
+activitySchema.virtual('subject').get(function() {
+  return this.title || this.activity_type.replace(/_/g, ' ').toUpperCase();
+});
+
+activitySchema.virtual('type').get(function() {
+  return this.activity_type.toUpperCase();
 });
 
 activitySchema.index({ lead_id: 1, createdAt: -1 });
 activitySchema.index({ customer_id: 1, createdAt: -1 });
+activitySchema.index({ user_id: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Activity', activitySchema);

@@ -64,12 +64,14 @@ function Leads() {
             style={{ width: 'auto' }}
           >
             <option value="All">All Stages</option>
-            <option value="New Lead">New Lead</option>
-            <option value="Contacted">Contacted</option>
-            <option value="Test Drive Scheduled">Test Drive Scheduled</option>
-            <option value="Negotiation">Negotiation</option>
-            <option value="Booking">Booking</option>
-            <option value="Sold / Won">Sold / Won</option>
+            <option value="new">New Lead</option>
+            <option value="contacted">Contacted</option>
+            <option value="interested">Interested</option>
+            <option value="test_drive">Test Drive</option>
+            <option value="negotiation">Negotiation</option>
+            <option value="booked">Booking</option>
+            <option value="won">Sold / Won</option>
+            <option value="lost">Lost</option>
           </select>
 
           <button onClick={() => setShowModal(true)} className="premium-btn">
@@ -99,6 +101,18 @@ function Leads() {
                 {leads.map(l => {
                   const cust = l.customer_id;
                   const phoneClean = cust?.phone ? cust.phone.replace(/[^0-9]/g, '') : '';
+                  const stageLabels = {
+                    new: 'New Lead',
+                    contacted: 'Contacted',
+                    interested: 'Interested',
+                    follow_up: 'Follow Up',
+                    test_drive: 'Test Drive',
+                    negotiation: 'Negotiation',
+                    booked: 'Booking',
+                    won: 'Sold / Won',
+                    lost: 'Lost'
+                  };
+                  const displayStage = stageLabels[l.status?.toLowerCase()] || l.status?.replace(/_/g, ' ') || 'New Lead';
 
                   return (
                     <tr key={l._id}>
@@ -109,18 +123,18 @@ function Leads() {
                       <td>
                         <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{l.interested_car || 'Open Requirement'}</span>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          Budget: {l.budget_max ? `₹${(l.budget_max / 100000).toFixed(1)}L` : 'Open'}
+                          Budget: {l.budget_max || l.requirements?.budget_max ? `₹${((l.budget_max || l.requirements?.budget_max) / 100000).toFixed(1)}L` : 'Open'}
                         </div>
                       </td>
                       <td>
-                        <span style={{ fontSize: '0.875rem' }}>{l.assigned_to || 'Amit Sharma'}</span>
+                        <span style={{ fontSize: '0.875rem' }}>{l.assigned_to?.name || l.assigned_to_name || 'Sales Executive'}</span>
                       </td>
                       <td>
-                        <span className="status-badge badge-primary">{l.status}</span>
+                        <span className="status-badge badge-primary">{displayStage}</span>
                       </td>
                       <td>
                         <span className={`priority-pill priority-${l.priority ? l.priority.toLowerCase() : 'warm'}`}>
-                          {l.priority || 'Warm'}
+                          {l.priority ? l.priority.toUpperCase() : 'WARM'}
                         </span>
                       </td>
                       <td>

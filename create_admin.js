@@ -19,9 +19,10 @@ mongoose.connect(MONGO_URI).then(async () => {
   const admin = new User({
     name: 'Amit Sharma',
     email: 'admin@motorwise.com',
-    password: hashedPassword,
-    role: 'Admin',
-    phone: '9876543210'
+    password_hash: hashedPassword,
+    role: 'admin',
+    phone: '9876543210',
+    status: 'active'
   });
 
   await admin.save();

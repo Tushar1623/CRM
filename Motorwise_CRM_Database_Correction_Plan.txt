@@ -1,0 +1,1582 @@
+Motorwise CRM — Database Correction & Proper Data Structure
+Document Version: 1.0
+Repository: Tushar1623/CRM
+Database Direction: MongoDB Atlas + Mongoose
+Purpose: Standardize the database, remove conflicting structures, and make CRM data persistent and production-ready.
+
+==================================================
+1. EXECUTIVE SUMMARY
+==================================================
+
+The current repository contains two different database architectures:
+
+1. PostgreSQL / Supabase schema
+2. MongoDB / Mongoose implementation
+
+The backend currently installs and uses Mongoose and MongoDB Atlas, but most CRUD operations are actually performed using in-memory arrays inside app.js.
+
+This means:
+- Data can disappear when the server restarts.
+- The PostgreSQL schema and MongoDB models disagree on field names.
+- The same concept uses different enum values in different files.
+- Some API routes create objects that do not match the Mongoose schemas.
+- Hard-coded salesperson names are used in multiple models.
+- Database persistence is not reliable yet.
+
+Recommended direction:
+
+React / Vite Frontend
+        ↓
+Express API
+        ↓
+Mongoose Models
+        ↓
+MongoDB Atlas
+
+Use MongoDB Atlas as the only production database for the current version.
+
+Do not use PostgreSQL and MongoDB together in the same CRM version.
+
+==================================================
+2. FINAL DATABASE COLLECTIONS
+==================================================
+
+Use these main MongoDB collections:
+
+1. users
+2. customers
+3. vehicles
+4. leads
+5. followups
+6. testdrives
+7. deals
+8. activities
+
+Optional later:
+9. notifications
+
+==================================================
+3. USERS COLLECTION
+==================================================
+
+Purpose:
+Store admin, manager, and sales executive accounts.
+
+Recommended structure:
+
+users
+
+_id
+name
+email
+phone
+password_hash
+
+role
+  admin
+  manager
+  sales_executive
+
+status
+  active
+  inactive
+
+created_at
+updated_at
+
+Indexes:
+
+email → unique
+role
+status
+
+Important correction:
+
+Do not store role values such as:
+
+Admin
+Sales Manager
+Sales Executive
+
+Store:
+
+admin
+manager
+sales_executive
+
+The frontend should display friendly labels.
+
+Example:
+
+Database:
+sales_executive
+
+Frontend:
+Sales Executive
+
+Password should be required for local authentication.
+
+==================================================
+4. CUSTOMERS COLLECTION
+==================================================
+
+Purpose:
+Store a unique person/customer record.
+
+A customer should not be duplicated every time they create a new lead.
+
+Recommended structure:
+
+customers
+
+_id
+
+name *
+phone *
+alternate_phone
+email
+
+city
+area
+address
+
+status
+  active
+  blacklisted
+
+tags []
+notes
+
+created_at
+updated_at
+
+Phone must be unique.
+
+Phone number normalization should happen before saving.
+
+For example:
+
++91 98765 43210
+98765-43210
+9876543210
+
+should all be normalized to one consistent stored value.
+
+Recommended stored format:
+
+9876543210
+
+The "source" field should not primarily belong to the customer because the same customer may return later from a different source.
+
+Lead source should belong to the lead.
+
+==================================================
+5. VEHICLES COLLECTION
+==================================================
+
+Purpose:
+Store all second-hand cars in inventory.
+
+Recommended structure:
+
+vehicles
+
+_id
+
+stock_id *
+registration_number
+
+brand *
+model *
+variant
+
+manufacturing_year *
+registration_year
+
+fuel_type
+  petrol
+  diesel
+  cng
+  electric
+  hybrid
+  other
+
+transmission
+  manual
+  automatic
+
+body_type
+  suv
+  sedan
+  hatchback
+  muv
+  coupe
+  other
+
+km_driven
+owners
+colour
+
+registration_city
+insurance_valid_until
+
+purchase_price
+asking_price
+minimum_selling_price
+
+purchase_date
+location
+
+status
+  available
+  reserved
+  booked
+  sold
+  under_inspection
+  under_repair
+
+images [
+  {
+    url,
+    category,
+    is_primary
+  }
+]
+
+notes
+
+sold_at
+created_at
+updated_at
+
+Important correction:
+
+Do not store selling_price inside the vehicle.
+
+Vehicle pricing should contain:
+
+purchase_price
+asking_price
+minimum_selling_price
+
+The actual final sold amount belongs in the deal:
+
+final_selling_price
+
+This avoids confusion between list price and actual sale price.
+
+Recommended unique indexes:
+
+stock_id → unique
+registration_number → unique when present
+
+Recommended indexes:
+
+brand
+model
+status
+asking_price
+manufacturing_year
+
+==================================================
+6. LEADS COLLECTION
+==================================================
+
+Purpose:
+Store a customer buying opportunity.
+
+This is the most important CRM collection.
+
+Recommended structure:
+
+leads
+
+_id
+lead_number *
+
+customer_id *
+assigned_to *
+
+source
+  walk_in
+  website
+  facebook
+  instagram
+  whatsapp
+  google_ads
+  cardekho
+  cars24
+  olx
+  referral
+  phone_call
+  existing_customer
+  other
+
+priority
+  hot
+  warm
+  cold
+
+status
+  new
+  contacted
+  interested
+  follow_up
+  test_drive
+  negotiation
+  booked
+  won
+  lost
+
+interested_vehicle_ids []
+
+requirements {
+    preferred_brands []
+    preferred_models []
+    preferred_fuel_types []
+    preferred_transmission
+    preferred_body_types []
+
+    budget_min
+    budget_max
+
+    year_from
+    maximum_km
+
+    preferred_colour
+
+    buying_timeline
+      immediately
+      within_7_days
+      within_30_days
+      one_to_three_months
+      exploring
+
+    finance_required
+    exchange_vehicle
+}
+
+next_follow_up_at
+
+lost_reason
+lost_note
+
+notes
+
+closed_at
+created_at
+updated_at
+
+Recommended lead stages:
+
+new
+contacted
+interested
+follow_up
+test_drive
+negotiation
+booked
+won
+lost
+
+Do not use separate lead statuses for:
+
+test_drive_scheduled
+test_drive_completed
+
+The lead stage should simply be:
+
+test_drive
+
+The TestDrive collection should control whether a test drive is:
+
+scheduled
+completed
+cancelled
+no_show
+rescheduled
+
+This keeps the CRM logic simpler.
+
+Recommended indexes:
+
+lead_number → unique
+customer_id
+assigned_to
+status
+priority
+next_follow_up_at
+created_at
+
+==================================================
+7. FOLLOWUPS COLLECTION
+==================================================
+
+Purpose:
+Store every follow-up action tied to an active lead.
+
+Recommended structure:
+
+followups
+
+_id
+
+lead_id *
+customer_id *
+assigned_to *
+
+scheduled_at *
+
+type
+  call
+  whatsapp
+  showroom_visit
+  meeting
+  test_drive
+  negotiation
+  other
+
+status
+  pending
+  completed
+  missed
+  rescheduled
+
+outcome
+  interested
+  no_answer
+  call_later
+  test_drive
+  negotiation
+  not_interested
+  other
+
+notes
+
+completed_at
+created_at
+updated_at
+
+Important rule:
+
+Every follow-up should belong to a lead.
+
+Relationship:
+
+Customer
+   ↓
+Lead
+   ↓
+Follow-up
+
+Avoid creating free-floating follow-ups with no lead.
+
+Recommended indexes:
+
+lead_id
+customer_id
+assigned_to
+scheduled_at
+status
+
+==================================================
+8. TESTDRIVES COLLECTION
+==================================================
+
+Purpose:
+Store vehicle test-drive scheduling and results.
+
+Recommended structure:
+
+testdrives
+
+_id
+
+lead_id *
+customer_id *
+vehicle_id *
+employee_id *
+
+scheduled_at *
+
+location
+
+status
+  scheduled
+  completed
+  cancelled
+  no_show
+  rescheduled
+
+result
+  interested
+  follow_up
+  negotiation
+  not_interested
+
+driving_license_no
+customer_feedback
+notes
+
+completed_at
+created_at
+updated_at
+
+Important correction:
+
+Do not store date and time separately like:
+
+date: 2026-09-15
+time: "02:00 PM"
+
+Store one datetime value:
+
+scheduled_at:
+2026-09-15T14:00:00+05:30
+
+This makes:
+- Sorting easier
+- Calendar views easier
+- Reminder logic easier
+- Timezone handling easier
+- Queries more reliable
+
+Recommended indexes:
+
+lead_id
+customer_id
+vehicle_id
+employee_id
+scheduled_at
+status
+
+==================================================
+9. DEALS COLLECTION
+==================================================
+
+Purpose:
+Store negotiation, booking, payment, delivery, and final sale.
+
+Recommended structure:
+
+deals
+
+_id
+deal_number *
+
+lead_id *
+customer_id *
+vehicle_id *
+salesperson_id *
+
+asking_price
+customer_offer
+final_selling_price *
+
+booking_amount
+amount_received
+
+payment_method
+  cash
+  bank_transfer
+  cheque
+  upi
+  finance
+  other
+
+payment_status
+  pending
+  partial
+  paid
+  refunded
+
+finance_status
+  not_applicable
+  pending
+  applied
+  approved
+  disbursed
+  rejected
+
+status
+  negotiation
+  booking_pending
+  booked
+  payment_pending
+  payment_completed
+  delivered
+  cancelled
+
+booking_date
+expected_delivery_date
+delivered_at
+
+notes
+
+created_at
+updated_at
+
+Balance should not be stored as a separate permanent field.
+
+Calculate:
+
+balance =
+final_selling_price - amount_received
+
+This prevents data mismatches.
+
+Recommended indexes:
+
+deal_number → unique
+lead_id
+customer_id
+vehicle_id
+salesperson_id
+status
+payment_status
+created_at
+
+Important business rule:
+
+Only one active deal should exist for a vehicle at a time.
+
+A vehicle should not be booked by multiple customers simultaneously.
+
+==================================================
+10. ACTIVITIES COLLECTION
+==================================================
+
+Purpose:
+Store CRM history automatically.
+
+Recommended structure:
+
+activities
+
+_id
+
+lead_id
+customer_id
+user_id
+
+activity_type
+
+title
+description
+
+metadata {}
+
+created_at
+
+Recommended activity types:
+
+lead_created
+lead_assigned
+stage_changed
+
+call_logged
+whatsapp_opened
+
+followup_created
+followup_completed
+
+vehicle_interest_added
+
+test_drive_created
+test_drive_completed
+
+deal_created
+deal_status_changed
+
+vehicle_reserved
+vehicle_sold
+
+note_added
+
+Important correction:
+
+Do not store UI-formatted text such as:
+
+date: "Just now"
+
+Store a real Date value.
+
+The frontend should calculate:
+
+Just now
+5 minutes ago
+Yesterday
+12 Sep 2026
+
+Use one consistent activity structure.
+
+Do not mix:
+
+activity_type
+description
+metadata
+
+with different properties such as:
+
+type
+subject
+date
+
+==================================================
+11. DATABASE RELATIONSHIPS
+==================================================
+
+Main relationship structure:
+
+USER
+  │
+  ├──────────── assigned to ──────────┐
+  │                                    │
+  ↓                                    ↓
+
+CUSTOMER ──────── LEAD ───────── FOLLOW-UP
+    │               │
+    │               │
+    │               ├────────── TEST DRIVE
+    │               │                │
+    │               │                ↓
+    │               └──────────── VEHICLE
+    │                                │
+    │                                │
+    └────────────── DEAL ─────────────┘
+
+                     ↓
+
+                  ACTIVITY
+
+Business workflow:
+
+Customer
+   ↓
+Lead
+   ↓
+Interested Vehicle
+   ↓
+Follow-up
+   ↓
+Test Drive
+   ↓
+Negotiation
+   ↓
+Deal
+   ↓
+Sold
+
+==================================================
+12. DATABASE NAMING STANDARD
+==================================================
+
+Use one standard everywhere.
+
+Field names:
+snake_case
+
+Enum values:
+lowercase_snake_case
+
+Dates:
+real Date values
+
+Money:
+Number in INR
+
+References:
+MongoDB ObjectId
+
+UI labels:
+handled by frontend
+
+Examples:
+
+Database:
+within_7_days
+
+Frontend:
+Within 7 Days
+
+Database:
+sales_executive
+
+Frontend:
+Sales Executive
+
+Database:
+under_repair
+
+Frontend:
+Under Repair
+
+Database:
+new
+
+Frontend:
+New Lead
+
+==================================================
+13. IMPORTANT CURRENT PROBLEM — IN-MEMORY DATABASE
+==================================================
+
+The current backend uses in-memory arrays inside app.js.
+
+Examples:
+
+mem.customers
+mem.vehicles
+mem.leads
+mem.followups
+mem.testDrives
+mem.deals
+mem.activities
+
+Current code patterns include:
+
+mem.customers.push(cust)
+
+mem.leads.unshift(newLead)
+
+mem.vehicles.unshift(newVeh)
+
+mem.deals.unshift(newDeal)
+
+This is not a real production database.
+
+If the backend restarts, in-memory CRM data can disappear.
+
+The application must use Mongoose for all production CRUD operations.
+
+Correct pattern:
+
+const customer = await Customer.create(data);
+
+const lead = await Lead.create(data);
+
+const vehicle = await Vehicle.create(data);
+
+const deal = await Deal.create(data);
+
+Reads should use MongoDB:
+
+const leads = await Lead.find()
+  .populate('customer_id')
+  .populate('assigned_to');
+
+Updates should use MongoDB:
+
+await Lead.findByIdAndUpdate(
+  leadId,
+  updateData,
+  { new: true, runValidators: true }
+);
+
+Deletes should use MongoDB:
+
+await Lead.findByIdAndDelete(leadId);
+
+==================================================
+14. DATABASE PERSISTENCE RULE
+==================================================
+
+All API routes must follow this rule:
+
+If MongoDB is unavailable:
+
+Do not silently switch the production CRM to in-memory storage.
+
+Instead return a clear server/database error.
+
+Recommended response:
+
+503 Service Unavailable
+
+{
+  "error": "Database temporarily unavailable"
+}
+
+An in-memory fallback can be used only for:
+- Tests
+- Local demos
+- Prototype mode
+
+It should not be used silently in production.
+
+==================================================
+15. HARD-CODED USER DATA MUST BE REMOVED
+==================================================
+
+Current models and API logic contain hard-coded names such as:
+
+Amit Sharma
+
+This should be removed from:
+
+Lead
+FollowUp
+TestDrive
+Deal
+Activity
+
+Always save the logged-in user's ObjectId.
+
+Example:
+
+assigned_to: req.user.id
+
+Then populate the name from User when needed.
+
+Do not save:
+
+assigned_to_name: "Amit Sharma"
+
+as the main relational field.
+
+Use:
+
+assigned_to: ObjectId
+
+Then:
+
+.populate('assigned_to', 'name email role')
+
+==================================================
+16. AUTHENTICATION & SECURITY CORRECTIONS
+==================================================
+
+Important rules:
+
+1. Every protected API route should require JWT authentication.
+2. Admin-only routes must verify admin role.
+3. Manager routes should verify manager/admin.
+4. Sales executives should only access permitted records.
+5. Passwords must always be hashed using bcrypt.
+6. JWT secret must always come from environment variables.
+7. Do not use a hard-coded fallback JWT secret in production.
+8. Do not expose database clearing endpoints publicly.
+
+The current clear-data endpoint should be:
+- Removed from production
+OR
+- Protected by admin authentication
+AND
+- Disabled outside development mode
+
+Recommended:
+
+if (process.env.NODE_ENV !== 'development') {
+  do not register /api/clear-data
+}
+
+==================================================
+17. CUSTOMER DUPLICATE PROTECTION
+==================================================
+
+Before creating a customer:
+
+1. Normalize phone.
+2. Search by phone.
+3. If existing customer found:
+   - Reuse existing customer
+   - Create a new lead if necessary
+4. Do not create a duplicate customer.
+
+Example flow:
+
+POST /api/leads
+
+Phone:
+9876543210
+
+Backend:
+
+Customer.findOne({ phone: normalizedPhone })
+
+If customer exists:
+use customer._id
+
+If customer does not exist:
+create customer
+
+Then create lead.
+
+==================================================
+18. VEHICLE BOOKING INTEGRITY
+==================================================
+
+Before creating a booking/deal:
+
+Check vehicle status.
+
+Do not allow booking when:
+
+status = sold
+status = reserved
+status = booked
+
+unless the previous booking is cancelled.
+
+Recommended transaction logic:
+
+1. Validate customer
+2. Validate lead
+3. Validate vehicle
+4. Check vehicle availability
+5. Create deal
+6. Update vehicle to reserved/booked
+7. Update lead to booked
+8. Create activity record
+
+These operations should happen together.
+
+For MongoDB Atlas, use transactions when appropriate.
+
+==================================================
+19. DEAL COMPLETION WORKFLOW
+==================================================
+
+When deal is delivered/completed:
+
+Deal:
+status = delivered
+payment_status = paid
+
+Vehicle:
+status = sold
+sold_at = current date
+
+Lead:
+status = won
+closed_at = current date
+
+Activity:
+vehicle_sold
+
+This should happen automatically through one backend action.
+
+==================================================
+20. DEAL CANCELLATION WORKFLOW
+==================================================
+
+When deal is cancelled:
+
+Deal:
+status = cancelled
+
+Vehicle:
+status = available
+
+Lead:
+Return to appropriate stage, usually:
+negotiation
+or
+follow_up
+
+Activity:
+deal_status_changed
+
+Do not leave the vehicle reserved after deal cancellation.
+
+==================================================
+21. LOST LEAD WORKFLOW
+==================================================
+
+When lead status becomes:
+
+lost
+
+Require:
+
+lost_reason
+
+Optional:
+
+lost_note
+
+Recommended lost_reason enum:
+
+price_too_high
+bought_elsewhere
+vehicle_unavailable
+finance_rejected
+not_interested
+not_responding
+requirement_changed
+purchase_postponed
+other
+
+When lost:
+
+closed_at = current date
+
+==================================================
+22. NEXT FOLLOW-UP RULE
+==================================================
+
+Every active lead should ideally have a next action.
+
+Active statuses:
+
+new
+contacted
+interested
+follow_up
+test_drive
+negotiation
+booked
+
+Closed statuses:
+
+won
+lost
+
+Recommended business validation:
+
+If a lead is active and no next_follow_up_at exists,
+the CRM should highlight the lead as needing attention.
+
+==================================================
+23. RECOMMENDED MODEL VALIDATION
+==================================================
+
+Customer:
+
+name required
+phone required and unique
+
+Vehicle:
+
+stock_id required and unique
+brand required
+model required
+manufacturing_year required
+km_driven >= 0
+prices >= 0
+
+Lead:
+
+customer_id required
+assigned_to required
+priority required
+status required
+
+Budget rule:
+
+budget_max >= budget_min
+
+FollowUp:
+
+lead_id required
+customer_id required
+assigned_to required
+scheduled_at required
+
+TestDrive:
+
+lead_id required
+customer_id required
+vehicle_id required
+employee_id required
+scheduled_at required
+
+Deal:
+
+lead_id required
+customer_id required
+vehicle_id required
+salesperson_id required
+final_selling_price required
+
+==================================================
+24. RECOMMENDED DATABASE INDEXES
+==================================================
+
+users:
+- email unique
+- role
+- status
+
+customers:
+- phone unique
+- name
+- city
+
+vehicles:
+- stock_id unique
+- registration_number unique where applicable
+- brand
+- model
+- status
+- asking_price
+- manufacturing_year
+
+leads:
+- lead_number unique
+- customer_id
+- assigned_to
+- status
+- priority
+- next_follow_up_at
+- created_at
+
+followups:
+- lead_id
+- assigned_to
+- scheduled_at
+- status
+
+testdrives:
+- lead_id
+- customer_id
+- vehicle_id
+- employee_id
+- scheduled_at
+- status
+
+deals:
+- deal_number unique
+- customer_id
+- vehicle_id
+- salesperson_id
+- status
+- payment_status
+
+activities:
+- lead_id + created_at
+- customer_id + created_at
+- user_id + created_at
+
+==================================================
+25. API STRUCTURE RECOMMENDATION
+==================================================
+
+Recommended routes:
+
+AUTH
+
+POST /api/auth/login
+POST /api/auth/register
+
+USERS
+
+GET /api/users
+GET /api/users/:id
+POST /api/users
+PUT /api/users/:id
+
+CUSTOMERS
+
+GET /api/customers
+GET /api/customers/:id
+POST /api/customers
+PUT /api/customers/:id
+
+LEADS
+
+GET /api/leads
+GET /api/leads/:id
+POST /api/leads
+PUT /api/leads/:id
+PATCH /api/leads/:id/status
+
+FOLLOWUPS
+
+GET /api/followups
+GET /api/followups/:id
+POST /api/followups
+PUT /api/followups/:id
+PATCH /api/followups/:id/complete
+
+TEST DRIVES
+
+GET /api/test-drives
+GET /api/test-drives/:id
+POST /api/test-drives
+PUT /api/test-drives/:id
+PATCH /api/test-drives/:id/complete
+
+VEHICLES
+
+GET /api/vehicles
+GET /api/vehicles/:id
+POST /api/vehicles
+PUT /api/vehicles/:id
+PATCH /api/vehicles/:id/status
+
+DEALS
+
+GET /api/deals
+GET /api/deals/:id
+POST /api/deals
+PUT /api/deals/:id
+PATCH /api/deals/:id/status
+
+ACTIVITIES
+
+GET /api/activities
+GET /api/leads/:id/activities
+GET /api/customers/:id/activities
+
+==================================================
+26. RECOMMENDED FOLDER STRUCTURE
+==================================================
+
+backend/
+
+models/
+  User.js
+  Customer.js
+  Vehicle.js
+  Lead.js
+  FollowUp.js
+  TestDrive.js
+  Deal.js
+  Activity.js
+
+routes/
+  auth.routes.js
+  users.routes.js
+  customers.routes.js
+  vehicles.routes.js
+  leads.routes.js
+  followups.routes.js
+  testdrives.routes.js
+  deals.routes.js
+  activities.routes.js
+
+controllers/
+  auth.controller.js
+  users.controller.js
+  customers.controller.js
+  vehicles.controller.js
+  leads.controller.js
+  followups.controller.js
+  testdrives.controller.js
+  deals.controller.js
+  activities.controller.js
+
+middleware/
+  auth.js
+  authorize.js
+  errorHandler.js
+
+services/
+  activity.service.js
+  deal.service.js
+  lead.service.js
+
+utils/
+  normalizePhone.js
+  generateLeadNumber.js
+  generateDealNumber.js
+
+config/
+  db.js
+
+app.js
+server.js
+
+This is cleaner than keeping the entire backend in one app.js file.
+
+==================================================
+27. DATABASE MIGRATION PRIORITY
+==================================================
+
+PHASE 1 — STANDARDIZE SCHEMAS
+
+1. User
+2. Customer
+3. Vehicle
+4. Lead
+5. FollowUp
+6. TestDrive
+7. Deal
+8. Activity
+
+PHASE 2 — REMOVE MEMORY CRUD
+
+Replace every:
+
+mem.*
+
+operation with real Mongoose calls.
+
+PHASE 3 — FIX RELATIONSHIPS
+
+Use ObjectId references consistently.
+
+PHASE 4 — FIX ENUMS
+
+Convert all database enum values to lowercase_snake_case.
+
+PHASE 5 — ADD AUTHORIZATION
+
+Protect all CRM routes.
+
+PHASE 6 — ADD BUSINESS AUTOMATION
+
+Booking:
+Lead → booked
+Vehicle → reserved
+
+Delivered:
+Lead → won
+Vehicle → sold
+Deal → delivered
+
+Cancelled:
+Vehicle → available
+
+Lost:
+Require lost_reason
+
+==================================================
+28. MOST IMPORTANT ISSUES TO FIX FIRST
+==================================================
+
+Priority 1:
+Remove in-memory storage from production CRUD.
+
+Priority 2:
+Choose MongoDB as the single production database.
+
+Priority 3:
+Standardize all field names.
+
+Priority 4:
+Standardize all enum values.
+
+Priority 5:
+Remove hard-coded salesperson names.
+
+Priority 6:
+Use ObjectId references properly.
+
+Priority 7:
+Fix TestDrive date/time into scheduled_at.
+
+Priority 8:
+Remove selling_price from Vehicle and keep final price in Deal.
+
+Priority 9:
+Protect clear-data and all write routes with authentication.
+
+Priority 10:
+Add transactional booking/sale logic.
+
+==================================================
+29. FINAL RECOMMENDED DATABASE FLOW
+==================================================
+
+Lead creation:
+
+1. Normalize phone
+2. Find/create customer
+3. Create lead
+4. Assign salesperson
+5. Create activity
+6. Optionally create first follow-up
+
+Follow-up completion:
+
+1. Complete follow-up
+2. Save outcome
+3. Create activity
+4. Schedule next action or change stage
+
+Test drive creation:
+
+1. Validate lead
+2. Validate customer
+3. Validate vehicle
+4. Create test drive
+5. Update lead stage to test_drive
+6. Create activity
+
+Booking:
+
+1. Validate vehicle availability
+2. Create deal
+3. Update vehicle to reserved/booked
+4. Update lead to booked
+5. Create activity
+
+Delivery:
+
+1. Confirm payment
+2. Mark deal delivered
+3. Mark vehicle sold
+4. Mark lead won
+5. Set closed_at/sold_at
+6. Create activity
+
+Cancellation:
+
+1. Mark deal cancelled
+2. Release vehicle
+3. Reopen lead to negotiation/follow_up
+4. Create activity
+
+==================================================
+30. FINAL ARCHITECTURE
+==================================================
+
+Motorwise CRM should use:
+
+Frontend:
+React + Vite
+
+Backend:
+Node.js + Express
+
+Database:
+MongoDB Atlas
+
+ODM:
+Mongoose
+
+Authentication:
+JWT + bcrypt
+
+Images:
+Cloudinary / S3 / Supabase Storage / similar object storage
+
+Do not store large image binaries directly inside MongoDB.
+
+Store only image URLs or storage paths.
+
+==================================================
+31. FINAL DECISION
+==================================================
+
+For the current Motorwise repository, the recommended solution is:
+
+KEEP:
+- Node.js
+- Express
+- MongoDB Atlas
+- Mongoose
+- JWT
+- bcrypt
+- React
+- Vite
+
+REMOVE OR ARCHIVE:
+- PostgreSQL schema from active implementation
+- Silent in-memory production fallback
+- Hard-coded default salesperson names
+- Duplicate field naming conventions
+- UI-style enum values in the database
+- Separate date/time strings for test drives
+
+GOAL:
+
+One CRM
+One backend
+One database
+One schema standard
+One source of truth
+
+This will make Motorwise reliable, maintainable, and ready for real dealership use.

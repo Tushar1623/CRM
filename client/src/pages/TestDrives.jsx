@@ -150,25 +150,25 @@ function TestDrives() {
                       <span style={{ fontWeight: '600' }}>{td.vehicle_id?.brand} {td.vehicle_id?.model}</span>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{td.vehicle_id?.stock_id || 'STK'}</div>
                     </td>
-                    <td>{td.employee_id?.name || 'Amit Sharma'}</td>
+                    <td>{td.employee_id?.name || td.employee_name || 'Sales Executive'}</td>
                     <td>
-                      <span className={`status-badge ${td.status === 'Completed' ? 'badge-success' : td.status === 'Cancelled' ? 'badge-danger' : 'badge-primary'}`}>
-                        {td.status}
+                      <span className={`status-badge ${(td.status || '').toLowerCase() === 'completed' ? 'badge-success' : (td.status || '').toLowerCase() === 'cancelled' ? 'badge-danger' : 'badge-primary'}`}>
+                        {td.status ? td.status.replace(/_/g, ' ').toUpperCase() : 'SCHEDULED'}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                        {td.status === 'Scheduled' && (
+                        {(td.status || '').toLowerCase() === 'scheduled' && (
                           <>
                             <button 
-                              onClick={() => handleStatusChange(td._id, 'Completed')}
+                              onClick={() => handleStatusChange(td._id, 'completed')}
                               className="premium-btn" 
                               style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', backgroundColor: '#10b981' }}
                             >
                               <CheckCircle size={13} /> Complete
                             </button>
                             <button 
-                              onClick={() => handleStatusChange(td._id, 'Cancelled')}
+                              onClick={() => handleStatusChange(td._id, 'cancelled')}
                               className="outline-btn" 
                               style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}
                             >

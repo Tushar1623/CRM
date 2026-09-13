@@ -184,15 +184,17 @@ function Followups() {
                         </div>
                       </td>
                       <td>
-                        <span className="priority-pill priority-warm" style={{ display: 'inline-block', marginBottom: '0.3rem' }}>{f.type}</span>
+                        <span className="priority-pill priority-warm" style={{ display: 'inline-block', marginBottom: '0.3rem' }}>
+                          {f.type ? f.type.replace(/_/g, ' ').toUpperCase() : 'CALL'}
+                        </span>
                         <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{f.notes || 'Routine follow-up'}</p>
                       </td>
                       <td>
-                        <span style={{ fontSize: '0.875rem' }}>{f.assigned_to_name || f.assigned_to || 'Amit Sharma'}</span>
+                        <span style={{ fontSize: '0.875rem' }}>{f.assigned_to?.name || f.assigned_to_name || 'Sales Executive'}</span>
                       </td>
                       <td>
-                        <span className={`status-badge ${f.status === 'Completed' ? 'badge-success' : isOverdue ? 'badge-danger' : 'badge-warning'}`}>
-                          {f.status === 'Completed' ? 'Completed' : isOverdue ? 'Overdue' : 'Pending'}
+                        <span className={`status-badge ${(f.status || '').toLowerCase() === 'completed' ? 'badge-success' : isOverdue ? 'badge-danger' : 'badge-warning'}`}>
+                          {(f.status || '').toLowerCase() === 'completed' ? 'Completed' : isOverdue ? 'Overdue' : 'Pending'}
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
@@ -207,7 +209,7 @@ function Followups() {
                               </a>
                             </>
                           )}
-                          {f.status !== 'Completed' && (
+                          {(f.status || '').toLowerCase() !== 'completed' && (
                             <button onClick={() => handleMarkCompleted(f._id)} className="premium-btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', backgroundColor: 'var(--success)' }}>
                               <CheckCircle size={13} /> Done
                             </button>

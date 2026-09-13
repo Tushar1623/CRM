@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const leadSchema = new mongoose.Schema({
   lead_number: { 
     type: String, 
+    required: true,
     unique: true, 
-    sparse: true, 
     uppercase: true, 
     index: true 
   },
@@ -17,96 +17,97 @@ const leadSchema = new mongoose.Schema({
   assigned_to: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 
+    required: true,
     index: true 
   },
-  assigned_to_name: { 
-    type: String, 
-    default: 'Amit Sharma' 
-  },
-  
-  // Specific vehicle interest (car text or inventory ref)
-  interested_car: { 
-    type: String, 
-    trim: true 
-  },
-  interested_vehicle_ids: [{ 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Vehicle' 
-  }],
-
-  // Customer Requirement Preferences (PRD Section 13)
-  preferred_brand: [{ 
-    type: String, 
-    trim: true 
-  }],
-  preferred_fuel: [{ 
-    type: String, 
-    enum: ['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'] 
-  }],
-  preferred_transmission: { 
-    type: String, 
-    enum: ['Manual', 'Automatic', 'Any'], 
-    default: 'Any' 
-  },
-  preferred_body_type: [{ 
-    type: String 
-  }],
-  budget_min: { 
-    type: Number, 
-    min: 0 
-  },
-  budget_max: { 
-    type: Number, 
-    min: 0 
-  },
-  buying_timeline: { 
-    type: String, 
-    enum: ['Immediately', 'Within 7 Days', 'Within 30 Days', '1-3 Months', 'Just Exploring'], 
-    default: 'Within 30 Days' 
-  },
-  
   source: { 
     type: String, 
     enum: [
-      'Walk-in', 'Website', 'Facebook', 'Instagram', 'WhatsApp', 'Google Ads', 
-      'CarDekho', 'Cars24', 'OLX', 'Referral', 'Phone Call', 'Existing Customer', 'Other'
+      'walk_in', 'website', 'facebook', 'instagram', 'whatsapp', 'google_ads', 
+      'cardekho', 'cars24', 'olx', 'referral', 'phone_call', 'existing_customer', 'other'
     ],
-    default: 'Walk-in',
+    default: 'walk_in',
     index: true
   },
   priority: { 
     type: String, 
-    enum: ['Hot', 'Warm', 'Cold'], 
-    default: 'Warm',
+    enum: ['hot', 'warm', 'cold'], 
+    default: 'warm',
     index: true 
   },
   status: { 
     type: String, 
     enum: [
-      'New Lead', 'Contacted', 'Interested', 'Follow-Up', 'Test Drive Scheduled', 
-      'Test Drive Completed', 'Negotiation', 'Booking', 'Sold / Won', 'Lost'
+      'new', 'contacted', 'interested', 'follow_up', 'test_drive', 
+      'negotiation', 'booked', 'won', 'lost'
     ],
-    default: 'New Lead',
+    default: 'new',
     index: true 
   },
-  
-  next_followup_at: { 
+  interested_vehicle_ids: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Vehicle' 
+  }],
+  // Specific vehicle text representation
+  interested_car: {
+    type: String,
+    trim: true
+  },
+  requirements: {
+    preferred_brands: [{ type: String, trim: true }],
+    preferred_models: [{ type: String, trim: true }],
+    preferred_fuel_types: [{ type: String, trim: true }],
+    preferred_transmission: { type: String, trim: true },
+    preferred_body_types: [{ type: String, trim: true }],
+    budget_min: { type: Number, min: 0, default: 0 },
+    budget_max: { type: Number, min: 0, default: 0 },
+    year_from: { type: Number },
+    maximum_km: { type: Number },
+    preferred_colour: { type: String, trim: true },
+    buying_timeline: { 
+      type: String, 
+      enum: ['immediately', 'within_7_days', 'within_30_days', 'one_to_three_months', 'exploring'],
+      default: 'within_30_days' 
+    },
+    finance_required: { type: Boolean, default: false },
+    exchange_vehicle: { type: Boolean, default: false }
+  },
+  next_follow_up_at: { 
     type: Date, 
     index: true 
   },
   lost_reason: { 
     type: String, 
     enum: [
-      'Price too high', 'Bought from competitor', 'Car unavailable', 'Loan rejected', 
-      'Customer not interested', 'Customer not responding', 'Requirement changed', 
-      'Purchase postponed', 'Other'
+      'price_too_high', 'bought_elsewhere', 'vehicle_unavailable', 'finance_rejected', 
+      'not_interested', 'not_responding', 'requirement_changed', 'purchase_postponed', 'other'
     ]
   },
+  lost_note: { 
+    type: String,
+    trim: true 
+  },
   notes: { 
-    type: String 
+    type: String,
+    trim: true 
+  },
+  closed_at: { 
+    type: Date 
   }
 }, { 
-  timestamps: true 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Virtual for assigned_to_name
+leadSchema.virtual('assigned_to_name').get(function() {
+  return this.assigned_to?.name || 'Sales Executive';
+});
+
+// Virtual for budget_max fallback
+leadSchema.virtual('budget_max_val').get(function() {
+  return this.requirements?.budget_max || 0;
 });
 
 leadSchema.index({ status: 1, priority: 1, createdAt: -1 });
